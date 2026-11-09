@@ -57,8 +57,15 @@ function updatePage(key: keyof typeof actionMap, value?: any) {
   const action = actionMap[key]
   action &&
     chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
+      // The active tab is often not a markdown page (extensions page, a normal
+      // website...), so nothing listens there. Settings are already saved;
+      // read lastError so Chrome doesn't report "Receiving end does not exist".
       tabs.length &&
-        chrome.tabs.sendMessage(tabs[0].id, { action, data: { key, value } })
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { action, data: { key, value } },
+          () => void chrome.runtime.lastError,
+        )
     })
 }
 
