@@ -1,4 +1,4 @@
-import type MarkdownIt from 'markdown-it'
+import type { MarkdownIt } from 'markdown-it'
 import { isGraphvizCodeBlock, renderGraphvizPlaceholder } from '@/core/graphviz'
 
 export default function GraphvizBlockPlugin(md: MarkdownIt) {

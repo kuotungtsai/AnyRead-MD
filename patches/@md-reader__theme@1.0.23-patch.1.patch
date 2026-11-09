@@ -1,0 +1,14 @@
+diff --git a/src/katex.less b/src/katex.less
+index 1897a14002562fe6f55b99057c7a5c79cb5bd104..4bbb4f3d6808686efd43acbcd647f855c607873a 100644
+--- a/src/katex.less
++++ b/src/katex.less
+@@ -1,5 +1,4 @@
+-@import url('katex/src/katex.less');
+-@font-folder: '../dist/fonts';
+-@use-ttf: false;
+-@use-woff: false;
+-@use-woff2: true;
++// KaTeX >= 0.17 no longer ships src/katex.less: use its compiled stylesheet.
++// Only the woff2 fonts are bundled (build/webpack.common.js ignores the
++// woff/ttf fallbacks, which Chrome never requests once woff2 loads).
++@import (less) url('katex/dist/katex.css');

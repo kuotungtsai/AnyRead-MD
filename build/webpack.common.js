@@ -3,14 +3,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const FriendlyErrors = require('@nuxt/friendly-errors-webpack-plugin')
-const SveltePreprocess = require('svelte-preprocess')
-const fs = require('fs')
-
-// mermaid@9 imports a cytoscape file that newer cytoscape no longer exports
-const pnpmDir = resolve(__dirname, '../node_modules/.pnpm')
-const cytoscapeDir = fs.existsSync(pnpmDir)
-  ? fs.readdirSync(pnpmDir).find(d => /^cytoscape@/.test(d))
-  : null
+const { optimize } = require('webpack')
 
 module.exports = {
   entry: {
@@ -39,9 +32,8 @@ module.exports = {
         test: /\.svelte$/,
         use: {
           loader: 'svelte-loader',
-          options: {
-            preprocess: SveltePreprocess.typescript(),
-          },
+          // Svelte 5 strips `lang="ts"` type annotations itself
+          options: { compilerOptions: { css: 'injected' } },
         },
       },
       {
@@ -52,6 +44,11 @@ module.exports = {
             loader: 'css-loader',
             options: {
               esModule: false,
+              // KaTeX's CSS lists woff2, woff and ttf for each font: bundle
+              // only woff2 (Chrome stops at the first format it can load)
+              url: {
+                filter: url => !/KaTeX_[\w-]+\.(woff|ttf)$/.test(url),
+              },
             },
           },
           'less-loader',
@@ -74,19 +71,17 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.js', '.svelte', '.json', '.less'],
+    // Svelte 5 needs the `svelte` / `browser` conditions to pick its client runtime
+    conditionNames: ['svelte', 'browser', '...'],
     alias: {
       '@': resolve(__dirname, '../src'),
-      ...(cytoscapeDir && {
-        'cytoscape/dist/cytoscape.umd.js$': resolve(
-          pnpmDir,
-          cytoscapeDir,
-          'node_modules/cytoscape/dist/cytoscape.umd.js',
-        ),
-      }),
     },
   },
   stats: 'errors-only',
   plugins: [
+    // mermaid loads each diagram type with import(): keep everything inside
+    // the entry bundles, since a content script cannot load extra chunks
+    new optimize.LimitChunkCountPlugin({ maxChunks: 1 }),
     new FriendlyErrors(),
     new CleanWebpackPlugin(),
     new MiniCssExtractPlugin({

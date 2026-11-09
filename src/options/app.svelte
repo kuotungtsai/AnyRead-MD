@@ -189,7 +189,8 @@
         class:on={allOn}
         role="switch"
         aria-checked={allOn}
-        on:click={toggleAll}><span /></button
+        aria-label={localize('opt_all')}
+        on:click={toggleAll}><span></span></button
       >
     </div>
 
@@ -213,7 +214,8 @@
           class:on={row.kind === 'core' ? config.core[row.key] : enabled.includes(row.key)}
           role="switch"
           aria-checked={row.kind === 'core' ? !!config.core[row.key] : enabled.includes(row.key)}
-          on:click={() => toggle(row)}><span /></button
+          aria-label={row.label}
+          on:click={() => toggle(row)}><span></span></button
         >
       </div>
       {#if row.options && openGear[row.options]}
@@ -225,7 +227,7 @@
             placeholder={EXAMPLES[row.options] || '{ }'}
             bind:value={texts[row.options]}
             class:invalid={errors[row.options]}
-          />
+          ></textarea>
           {#if errors[row.options]}<div class="error">{errors[row.options]}</div>{/if}
           <button class="apply" on:click={() => applyOptions(row.options)}
             >{localize('opt_apply')}</button

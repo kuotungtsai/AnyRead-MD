@@ -2,11 +2,6 @@
   import storage from '@/core/storage'
   import Warning from './warning.svelte'
   import Header from './header.svelte'
-  import Radio from '@smui/radio'
-  import Switch from '@smui/switch'
-  import FormField from '@smui/form-field'
-  import Select, { Option } from '@smui/select'
-  import Chip, { Set, Text } from '@smui/chips'
   import MD_PLUGINS from '@/config/md-plugins'
   import PAGE_THEMES from '@/config/page-themes'
   import { getDefaultData, type Data } from '@/core/data'
@@ -40,6 +35,33 @@
   function savePlugins() {
     updateConfig('pluginsMigrated', true)
     updateConfig('mdPlugins', data.mdPlugins)
+  }
+
+  type SwitchKey = 'enable' | 'centered' | 'refresh' | 'dirView'
+  const SWITCHES: Array<[SwitchKey, string]> = [
+    ['enable', 'label_enable'],
+    ['centered', 'label_centered'],
+    ['refresh', 'label_auto-refresh'],
+    ['dirView', 'label_dir_view'],
+  ]
+
+  function toggleSwitch(key: SwitchKey) {
+    if (key !== 'enable' && !data.enable) return
+    data[key] = !data[key]
+    updateConfig(key, data[key])
+  }
+
+  function togglePlugin(name: string) {
+    if (!data.enable) return
+    data.mdPlugins = data.mdPlugins.includes(name)
+      ? data.mdPlugins.filter(p => p !== name)
+      : MD_PLUGINS.filter(p => p === name || data.mdPlugins.includes(p))
+    savePlugins()
+  }
+
+  function setTheme(mode: string) {
+    data.pageTheme = mode as Data['pageTheme']
+    updateConfig('pageTheme', mode)
   }
 
   function setAllPlugins(on: boolean) {
@@ -82,52 +104,20 @@
   {/if}
 
   <div class="form" disabled={!data.enable}>
-    <div class="form-item inline">
-      <span class="label-item">{localize('label_enable')}:</span>
-      <FormField align="end">
-        <Switch
-          bind:checked={data.enable}
-          color="primary"
-          on:change={() => updateConfig('enable', data.enable)}
-        />
-      </FormField>
-    </div>
-
-    <div class="form-item inline">
-      <span class="label-item">{localize('label_centered')}:</span>
-      <FormField align="end">
-        <Switch
-          disabled={!data.enable}
-          bind:checked={data.centered}
-          color="primary"
-          on:change={() => updateConfig('centered', data.centered)}
-        />
-      </FormField>
-    </div>
-
-    <div class="form-item inline">
-      <span class="label-item">{localize('label_auto-refresh')}:</span>
-      <FormField align="end">
-        <Switch
-          disabled={!data.enable}
-          bind:checked={data.refresh}
-          color="primary"
-          on:change={() => updateConfig('refresh', data.refresh)}
-        />
-      </FormField>
-    </div>
-
-    <div class="form-item inline">
-      <span class="label-item">{localize('label_dir_view')}:</span>
-      <FormField align="end">
-        <Switch
-          disabled={!data.enable}
-          bind:checked={data.dirView}
-          color="primary"
-          on:change={() => updateConfig('dirView', data.dirView)}
-        />
-      </FormField>
-    </div>
+    {#each SWITCHES as [key, label] (key)}
+      <div class="form-item inline">
+        <span class="label-item">{localize(label)}:</span>
+        <button
+          class="switch"
+          class:on={data[key]}
+          role="switch"
+          aria-checked={!!data[key]}
+          aria-label={localize(label)}
+          disabled={key !== 'enable' && !data.enable}
+          on:click={() => toggleSwitch(key)}><span></span></button
+        >
+      </div>
+    {/each}
 
     <div class="form-item">
       <div class="label-item plugins-label">
@@ -141,47 +131,46 @@
           >
         </span>
       </div>
-      <Set
-        let:chip
-        bind:selected={data.mdPlugins}
-        chips={MD_PLUGINS}
-        nonInteractive={!data.enable}
-        filter={data.enable}
-      >
-        <Chip
-          {chip}
-          title={chip}
-          on:click={() =>
-            data.enable && savePlugins()}
-          ><Text>{localize(chip)}</Text></Chip
-        >
-      </Set>
+      <div class="chips">
+        {#each MD_PLUGINS as chip (chip)}
+          <button
+            class="chip"
+            class:selected={data.mdPlugins.includes(chip)}
+            title={chip}
+            aria-pressed={data.mdPlugins.includes(chip)}
+            disabled={!data.enable}
+            on:click={() => togglePlugin(chip)}>{localize(chip)}</button
+          >
+        {/each}
+      </div>
     </div>
 
     <div class="form-item">
       <div class="label-item">{localize('label_theme')}:</div>
-      {#each PAGE_THEMES as mode}
-        <FormField>
-          <span slot="label"> {localize(mode)} </span>
-          <Radio
-            disabled={!data.enable}
-            bind:group={data.pageTheme}
-            bind:value={mode}
-            on:change={() => updateConfig('pageTheme', mode)}
-          />
-        </FormField>
-      {/each}
+      <div class="radios">
+        {#each PAGE_THEMES as mode (mode)}
+          <label class="radio">
+            <input
+              type="radio"
+              name="pageTheme"
+              value={mode}
+              checked={data.pageTheme === mode}
+              disabled={!data.enable}
+              on:change={() => setTheme(mode)}
+            />
+            {localize(mode)}
+          </label>
+        {/each}
+      </div>
     </div>
 
     <div class="form-item">
       <div class="label-item">{localize('label_language')}:</div>
-      <FormField style="padding-left: 10px">
-        <Select bind:value={data.language}>
-          {#each i18n.locales as locale}
-            <Option value={locale}>{localize(locale)}</Option>
-          {/each}
-        </Select>
-      </FormField>
+      <select class="select" bind:value={data.language}>
+        {#each i18n.locales as locale (locale)}
+          <option value={locale}>{localize(locale)}</option>
+        {/each}
+      </select>
     </div>
 
     <div class="form-item">
@@ -259,6 +248,100 @@
   }
   .advanced:hover {
     background: rgba(96, 124, 210, 0.1);
+  }
+  /* plain controls, styled like the settings page (src/options/app.svelte) */
+  .switch {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 11px;
+    background: #e6e8ec;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .switch span {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+  }
+  .switch.on {
+    background: #607cd2;
+  }
+  .switch.on span {
+    transform: translateX(18px);
+  }
+  .switch:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 12px;
+  }
+  .chip {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 16px;
+    font-size: 13px;
+    color: #243158;
+    background: #e6e8ec;
+    opacity: 0.54;
+    cursor: pointer;
+  }
+  .chip.selected {
+    color: #fff;
+    background: #607cd2;
+    opacity: 1;
+  }
+  .chip:disabled {
+    cursor: default;
+  }
+  .chip:disabled.selected {
+    color: #243158;
+    background: #e6e8ec;
+    opacity: 0.54;
+  }
+  .radios {
+    display: flex;
+    gap: 16px;
+    margin: 8px 0 12px;
+  }
+  .radio {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #243158e3;
+    cursor: pointer;
+  }
+  .radio input {
+    margin: 0;
+    accent-color: #607cd2;
+  }
+  .select {
+    width: 100%;
+    margin: 8px 0 12px;
+    padding: 6px 8px;
+    border: 1px solid #c9cfdb;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #243158;
+    background: #fff;
+  }
+  .select:focus {
+    outline: 2px solid #607cd2;
+    outline-offset: -1px;
   }
   .label-item {
     font-weight: bolder;

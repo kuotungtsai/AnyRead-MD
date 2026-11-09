@@ -1,3 +1,4 @@
+import { mount } from 'svelte'
 import App from './app.svelte'
 
-export default new App({ target: document.body })
+export default mount(App, { target: document.body })
