@@ -1,6 +1,7 @@
 {
   "name": "md-reader-pro",
-  "version": "2.13.0",
+  "version": "1.0.0",
+  "upstreamVersion": "2.12.12",
   "author": "Bener (original md-reader), Gordon Tsai (MD Reader Pro)",
   "license": "MIT",
   "private": true,
