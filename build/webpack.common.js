@@ -113,6 +113,12 @@ module.exports = {
           from: resolve(__dirname, '../src/options/index.html'),
           to: 'options.html',
         },
+        {
+          // MIT license must travel with every copy of the extension
+          from: resolve(__dirname, '../LICENSE'),
+          to: 'LICENSE',
+          toType: 'file',
+        },
       ],
     }),
   ],

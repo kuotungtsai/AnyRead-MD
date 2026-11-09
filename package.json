@@ -26,7 +26,8 @@
     "build:zip": "node ./scripts/zip.mjs",
     "lint": "prettier --write --ignore-unknown",
     "preinstall": "node ./scripts/preinstall.mjs",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "pack:share": "webpack --config ./build/webpack.prod.js && node ./scripts/pack-share.mjs"
   },
   "devDependencies": {
     "@nuxt/friendly-errors-webpack-plugin": "^2.5.2",

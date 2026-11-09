@@ -11,6 +11,7 @@ import { mdRender, type MdOptions } from '@/core/markdown'
 import { createFileTree, isFileProtocol } from '@/core/files'
 import { createEditor } from '@/core/editor'
 import { startTour, type TourStep } from '@/core/tour'
+import { safeCall, setRuntimeLanguage, onStale } from '@/core/runtime'
 import i18n from '@/config/i18n'
 import {
   getHeads,
@@ -73,6 +74,7 @@ function main(data: Data) {
   }
 
   let pollingTimer: number = null
+  onStale(() => clearTimeout(pollingTimer))
   let reloading: boolean = false
   let mdRaw: string = null
   let isSideHover: boolean = false
@@ -99,6 +101,7 @@ function main(data: Data) {
   })
 
   const localize = i18n(configData.language)
+  setRuntimeLanguage(configData.language)
 
   const mdRenderer =
     (target: HTMLElement | Ele) =>
@@ -187,7 +190,7 @@ function main(data: Data) {
       if (isFiles) fileTree.ensureLoaded()
       if (persist) {
         configData.sideTab = tab
-        storage.set('sideTab', tab)
+        safeCall(() => storage.set('sideTab', tab))
       }
     }
     tocTab.on('click', () => switchTab('toc'))
@@ -274,13 +277,15 @@ function main(data: Data) {
     svg(sideIcon),
   )
   sideExpandBtn.on('click', () => {
-    chrome.runtime.sendMessage({
-      action: 'storage',
-      data: {
-        key: 'hiddenSide',
-        value: !configData.hiddenSide,
-      },
-    })
+    safeCall(() =>
+      chrome.runtime.sendMessage({
+        action: 'storage',
+        data: {
+          key: 'hiddenSide',
+          value: !configData.hiddenSide,
+        },
+      }),
+    )
   })
   function onToggleSide() {
     if (window.innerWidth <= 960) {
@@ -381,7 +386,7 @@ function main(data: Data) {
       },
       () => {
         configData.tourDone = true
-        storage.set('tourDone', true)
+        safeCall(() => storage.set('tourDone', true))
       },
     )
   }
@@ -403,26 +408,30 @@ function main(data: Data) {
   function polling() {
     void (function watch() {
       clearTimeout(pollingTimer)
-      chrome.runtime.sendMessage({ action: 'fetch' }, res => {
-        // never overwrite the editor's draft with file content
-        if (res !== undefined && editorDraft === null) {
-          if (mdRaw === undefined || mdRaw === null) {
-            if (res) {
-              window.location.reload()
-              return
+      // stop polling once the extension was reloaded / updated
+      safeCall(() =>
+        chrome.runtime.sendMessage({ action: 'fetch' }, res => {
+          void chrome.runtime.lastError
+          // never overwrite the editor's draft with file content
+          if (res !== undefined && editorDraft === null) {
+            if (mdRaw === undefined || mdRaw === null) {
+              if (res) {
+                window.location.reload()
+                return
+              }
+            } else if (mdRaw !== res) {
+              mdRaw = res
+              contentRender(res)
+              renderSide()
+              /* update raw content */
+              setTimeout(() => {
+                rawContainer.textContent = res
+              }, 0)
             }
-          } else if (mdRaw !== res) {
-            mdRaw = res
-            contentRender(res)
-            renderSide()
-            /* update raw content */
-            setTimeout(() => {
-              rawContainer.textContent = res
-            }, 0)
           }
-        }
-        pollingTimer = setTimeout(watch, 500)
-      })
+          pollingTimer = setTimeout(watch, 500)
+        }),
+      )
     })()
   }
 
