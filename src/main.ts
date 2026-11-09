@@ -10,6 +10,7 @@ import { getDefaultData, getDefaultMdConfig, type Data } from '@/core/data'
 import { mdRender, type MdOptions } from '@/core/markdown'
 import { createFileTree, isFileProtocol } from '@/core/files'
 import { createEditor } from '@/core/editor'
+import { startTour, type TourStep } from '@/core/tour'
 import i18n from '@/config/i18n'
 import {
   getHeads,
@@ -56,7 +57,11 @@ function main(data: Data) {
     toggleSide() {
       onToggleSide()
     },
+    startTour() {
+      mounted && runTour()
+    },
   }
+  let mounted = false
   chrome.runtime.onMessage.addListener(({ action, data: { key, value } }) => {
     const oldValue = configData[key]
     configData[key] = value
@@ -329,6 +334,57 @@ function main(data: Data) {
   /* mount elements */
   lifecycle.mount([buttonWrap, mdBody, mdSide, editor.panel])
   updateAnchorPosition()
+  mounted = true
+
+  /* first-run quick tutorial */
+  if (!configData.tourDone) {
+    setTimeout(runTour, 800)
+  }
+
+  function runTour() {
+    const t = localize
+    const steps: TourStep[] = [
+      { title: t('tour_welcome_title'), body: t('tour_welcome_body') },
+      fileTree
+        ? {
+            target: `.${className.MD_SIDE_TABS}`,
+            title: t('tour_side_title'),
+            body: t('tour_side_body'),
+          }
+        : {
+            target: `.${className.MD_SIDE}`,
+            title: t('tour_toc_title'),
+            body: t('tour_toc_body'),
+          },
+      {
+        target: `.${className.EDIT_TOGGLE_BTN}`,
+        title: t('tour_edit_title'),
+        body: t('tour_edit_body'),
+      },
+      {
+        target: `.${className.CODE_TOGGLE_BTN}`,
+        title: t('tour_raw_title'),
+        body: t('tour_raw_body'),
+      },
+      { title: t('tour_folder_title'), body: t('tour_folder_body') },
+      { title: t('tour_settings_title'), body: t('tour_settings_body') },
+      { title: t('tour_done_title'), body: t('tour_done_body') },
+    ]
+    editor.close()
+    startTour(
+      steps,
+      {
+        next: t('tour_next'),
+        prev: t('tour_prev'),
+        skip: t('tour_skip'),
+        done: t('tour_finish'),
+      },
+      () => {
+        configData.tourDone = true
+        storage.set('tourDone', true)
+      },
+    )
+  }
 
   darkMediaQuery.addEventListener('change', (e: MediaQueryListEvent) => {
     if (configData.pageTheme === 'auto') {

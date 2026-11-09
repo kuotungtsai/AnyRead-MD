@@ -30,6 +30,8 @@ export interface Data {
   sideTab?: SideTab
   /** replace Chrome's plain file:// folder listing with md-reader's view */
   dirView?: boolean
+  /** first-run tutorial has been shown */
+  tourDone?: boolean
   /** set once saved plugin lists include NEW_PLUGINS decisions */
   pluginsMigrated?: boolean
 }
@@ -63,6 +65,7 @@ export function getDefaultData(mergeData: Data = {}): Data {
     pageTheme: PAGE_THEMES[0],
     sideTab: 'toc',
     dirView: true,
+    tourDone: false,
     ...mergeData,
     ...(mdPlugins && { mdPlugins }),
     mdConfig: getDefaultMdConfig(mergeData.mdConfig),

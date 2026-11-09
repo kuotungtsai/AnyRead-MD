@@ -35,6 +35,19 @@
   let status = ''
   let rows: Row[] = []
 
+  /* welcome / quick start (opened automatically after install) */
+  let showWelcome = location.hash === '#welcome'
+  let fileAccess = true
+  function checkFileAccess() {
+    chrome.extension.isAllowedFileSchemeAccess(v => (fileAccess = !!v))
+  }
+  checkFileAccess()
+  // re-check when the user comes back from the extensions page
+  window.addEventListener('focus', checkFileAccess)
+  function openExtensionPage() {
+    chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })
+  }
+
   $: rows = [
     { kind: 'core', key: 'breaks', label: localize('opt_breaks'), desc: localize('opt_breaks_desc') },
     { kind: 'core', key: 'linkify', label: localize('opt_linkify'), desc: localize('opt_linkify_desc'), options: 'Linkify' },
@@ -127,7 +140,39 @@
   }
 </script>
 
-<main>
+{#if showWelcome}
+  <section class="welcome">
+    <h1>{localize('welcome_title')}</h1>
+    <p class="lead">{localize('welcome_lead')}</p>
+    <ol>
+      <li>
+        <div class="step-title">
+          {localize('welcome_step1')}
+          {#if fileAccess}<span class="ok">✓ {localize('welcome_enabled')}</span>{/if}
+        </div>
+        <div class="desc">{localize('welcome_step1_desc')}</div>
+        {#if !fileAccess}
+          <button class="apply" on:click={openExtensionPage}
+            >{localize('welcome_open_ext')}</button
+          >
+        {/if}
+      </li>
+      <li>
+        <div class="step-title">{localize('welcome_step2')}</div>
+        <div class="desc">{localize('welcome_step2_desc')}</div>
+      </li>
+      <li>
+        <div class="step-title">{localize('welcome_step3')}</div>
+        <div class="desc">{localize('welcome_step3_desc')}</div>
+      </li>
+    </ol>
+    <button class="reset" on:click={() => (showWelcome = false)}
+      >{localize('welcome_to_settings')}</button
+    >
+  </section>
+{/if}
+
+<main class:hidden={showWelcome}>
   <header>
     <h1>{localize('label_md-plugins')}</h1>
     <span class="status">{status}</span>
@@ -327,5 +372,37 @@
   }
   footer {
     margin-top: 16px;
+  }
+  main.hidden {
+    display: none;
+  }
+  .welcome {
+    max-width: 720px;
+    margin: 32px auto;
+    padding: 28px 36px;
+    border-radius: 14px;
+    background: #fff;
+  }
+  .welcome .lead {
+    color: #586069;
+  }
+  .welcome ol {
+    padding-left: 20px;
+  }
+  .welcome li {
+    margin: 14px 0;
+  }
+  .step-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #35425f;
+  }
+  .ok {
+    margin-left: 8px;
+    font-size: 13px;
+    color: #2fc178;
+  }
+  .welcome .desc {
+    white-space: pre-line;
   }
 </style>

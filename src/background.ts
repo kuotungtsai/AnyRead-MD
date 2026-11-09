@@ -62,6 +62,9 @@ function updatePage(key: keyof typeof actionMap, value?: any) {
     })
 }
 
-chrome.runtime.setUninstallURL(
-  'https://github.com/orgs/md-reader/discussions/51',
-)
+// first install: open the welcome page (file access setup + quick start)
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  if (reason === 'install') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('options.html#welcome') })
+  }
+})

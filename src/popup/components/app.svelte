@@ -50,6 +50,23 @@
     savePlugins()
   }
 
+  function replayTour() {
+    updateConfig('tourDone', false)
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      const id = tabs[0]?.id
+      if (id === undefined) return
+      chrome.tabs.sendMessage(
+        id,
+        { action: 'startTour', data: { key: 'tourDone', value: false } },
+        () => {
+          // not a markdown tab: the tour will show on the next one opened
+          void chrome.runtime.lastError
+          window.close()
+        },
+      )
+    })
+  }
+
   function openOptions() {
     chrome.runtime.openOptionsPage()
   }
@@ -173,6 +190,9 @@
       <button class="advanced" on:click={openOptions}>
         {localize('label_advanced')} →
       </button>
+      <button class="tour-link" on:click={replayTour}>
+        {localize('tour_replay')}
+      </button>
     </div>
   </div>
 </main>
@@ -194,6 +214,20 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 15px;
+  }
+  .tour-link {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 4px;
+    border: none;
+    font-size: 12px;
+    color: #607cd2;
+    background: none;
+    cursor: pointer;
+  }
+  .tour-link:hover {
+    text-decoration: underline;
   }
   .plugins-label {
     display: flex;
