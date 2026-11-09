@@ -4,6 +4,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const FriendlyErrors = require('@nuxt/friendly-errors-webpack-plugin')
 const { optimize } = require('webpack')
+const ThirdPartyNoticesPlugin = require('./third-party-notices.js')
 
 module.exports = {
   entry: {
@@ -86,6 +87,14 @@ module.exports = {
     new CleanWebpackPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
+    }),
+    new ThirdPartyNoticesPlugin({
+      header:
+        'MD Reader Pro is released under the MIT License (see LICENSE).\n' +
+        'It is a fork of md-reader 2.x, Copyright (c) 2018-present Bener (MIT).\n',
+      // pulled in by a Less @import, which webpack does not track as a module
+      packages: ['@md-reader/theme'],
+      supplements: require('./notices-supplements.js'),
     }),
     new CopyWebpackPlugin({
       patterns: [

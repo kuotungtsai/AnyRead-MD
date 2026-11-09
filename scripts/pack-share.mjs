@@ -1,7 +1,8 @@
 // Package the built extension for sharing with colleagues.
 // Output: dist/md-reader-pro-<version>.zip
 //   md-reader-pro/            <- "Load unpacked" this folder
-//     manifest.json, js/, ... (built extension, includes LICENSE)
+//     manifest.json, js/, ... (built extension, includes LICENSE and
+//     THIRD_PARTY_NOTICES.txt)
 //     安裝說明.txt
 // Run after building: node scripts/pack-share.mjs
 import fs from 'fs'
@@ -15,7 +16,12 @@ const distDir = new URL('dist/', root)
 const manifest = JSON.parse(
   fs.readFileSync(new URL('manifest.json', extDir), 'utf8'),
 )
-for (const required of ['manifest.json', 'LICENSE', 'js/content.js']) {
+for (const required of [
+  'manifest.json',
+  'LICENSE',
+  'THIRD_PARTY_NOTICES.txt',
+  'js/content.js',
+]) {
   if (!fs.existsSync(new URL(required, extDir))) {
     console.error(`Missing extension/${required}. Build first.`)
     process.exit(1)

@@ -95,4 +95,10 @@ MD Reader Pro 有自己的版本號，從 1.0.0 起算，採 [語意化版本](h
 
 本專案修改自 [md-reader](https://github.com/md-reader/md-reader) 2.x 的開源版本（Copyright (c) 2018-present Bener），依 MIT License 發布，條款見 [LICENSE](./LICENSE)。
 
+打包進 extension 的第三方套件（markdown-it、mermaid、KaTeX、Shiki、Graphviz 等）各有自己的授權，全部是 MIT、ISC、BSD 這類寬鬆授權（Graphviz 是 EPL-1.0，DOMPurify 是 MPL-2.0 或 Apache-2.0 二選一）。建置時會自動收集它們的版權與授權全文，輸出成 `extension/THIRD_PARTY_NOTICES.txt`，隨 extension 一起發布。
+
+- 收集邏輯在 [build/third-party-notices.js](./build/third-party-notices.js)：掃描實際打包進去的 `node_modules` 模組，不必手動維護清單。
+- 套件內沒附授權檔、但編譯進去的程式（例如 `@viz-js/viz` 裡的 Graphviz 和 Expat），在 [build/notices-supplements.js](./build/notices-supplements.js) 手動補上；升級 viz-js 時記得檢查。
+- 新增相依套件時，只用寬鬆授權（MIT、ISC、BSD、Apache-2.0）；不要加入 GPL、LGPL、AGPL 的套件。
+
 本專案為獨立維護的修改版，與原作者無關；相關問題請勿回報給原專案。
