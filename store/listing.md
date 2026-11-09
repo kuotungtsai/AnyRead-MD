@@ -71,7 +71,7 @@ Open source, based on md-reader 2.x (MIT License). Source code: https://github.c
 
 **Graphic assets**
 
-- Store icon（128×128）：`src/images/icon-128.png`
+- Store icon（128×128）：`store/store-icon-128.png`（96×96 圖案加 16px 透明邊，符合商店規範）
 - Screenshots（1280×800，依序上傳）：`store/screenshots/1-read.png` … `5-settings.png`
 - Small promo tile（440×280）：`store/promo-440x280.png`
 
