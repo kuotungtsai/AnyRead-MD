@@ -1,19 +1,11 @@
 {
-  "name": "md-reader",
+  "name": "md-reader-pro",
   "version": "2.12.12",
-  "author": "Bener",
+  "author": "Bener (original md-reader), Gordon Tsai (MD Reader Pro)",
   "license": "MIT",
-  "description": "A markdown reader extension for chrome",
-  "homepage": "https://md-reader.github.io",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Heroor/md-reader.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Heroor/md-reader/issues"
-  },
+  "private": true,
+  "description": "MD Reader Pro: read, browse and edit Markdown files locally in Chrome. Fork of md-reader 2.x (MIT).",
   "keywords": [
-    "md-reader",
     "markdown",
     "markdown reader",
     "chrome extension"

@@ -1,12 +1,16 @@
 <script>
   import Icon from './icon.svelte'
   import logoIcon from '@/images/logo-pro.svg'
-  export let homepage
+  // open this extension's own welcome / help page (no external website)
+  function openWelcome(e) {
+    e.preventDefault()
+    chrome.tabs.create({ url: chrome.runtime.getURL('options.html#welcome') })
+  }
 </script>
 
 <h1>
   <Icon class="icon-logo" svg={logoIcon} />
-  <a href={homepage} target="__blank">MD READER PRO</a>
+  <a href="options.html#welcome" on:click={openWelcome}>MD READER PRO</a>
 </h1>
 
 <style>

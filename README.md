@@ -1,93 +1,90 @@
-# Markdown Reader
+# MD Reader Pro
 
-<img alt="Markdown Reader Logo" src="https://raw.githubusercontent.com/md-reader/md-reader/main/src//images/logo-stroke.svg" align="right" width="120">
+<img alt="MD Reader Pro" src="./src/images/logo-pro.svg" align="right" width="110">
 
-English | [中文](./README-cn.md) | [한국어](./README-ko.md)
+在 Chrome 裡閱讀、瀏覽、編輯 Markdown 檔案的瀏覽器擴充功能。
+所有內容都只在你的電腦上處理：**沒有帳號、沒有追蹤，也不會連到任何外部伺服器。**
 
-https://md-reader.github.io
+> A Chrome extension to read, browse and edit Markdown files locally. No account, no tracking, no remote server.
+> Fork of the open-source [md-reader](https://github.com/md-reader/md-reader) 2.x (MIT).
 
-[![](https://badgen.net/chrome-web-store/v/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg) [![](https://badgen.net/chrome-web-store/stars/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg) [![](https://badgen.net/chrome-web-store/users/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg)
+## 功能
 
-Markdown Reader is a powerful browser extension that enables you to conveniently preview Markdown documents in your browser.
+- **閱讀**：開啟 `file://`、`http://`、`https://` 的 `.md` / `.mkd` / `.mdx` / `.markdown` 檔，淺色 / 深色主題、程式碼高亮、圖片放大檢視。
+- **側邊欄「大綱 / 檔案」**：大綱可跳到標題；檔案分頁列出同資料夾的其他 Markdown 檔與子資料夾，點一下就切換。
+- **資料夾檢視**：把整個資料夾拖進 Chrome（或開 `file:///C:/docs/` 這類網址），會看到可搜尋的 Markdown 檔列表，打字篩選、`↑` `↓` 選擇、`Enter` 開啟。
+- **編輯模式**：`Alt+Shift+E` 開啟左右分割的編輯器，右邊即時預覽；`Ctrl+S` 存檔（第一次會跳出「另存新檔」，選同一個檔案覆蓋）。
+- **插件與參數設定**：Emoji、上下標、目錄 TOC、數學公式 KaTeX、Mermaid、腳註、任務列表、提示框、表格擴展、元數據 frontmatter 等，可個別開關，並用 ⚙ 以 JSON 調整參數；也能一鍵全開 / 全關。
+- **自動刷新**：檔案在其他編輯器存檔後，頁面自動更新。
+- **快速教學**：安裝後有歡迎頁，第一次開 Markdown 時有導覽，之後可從 popup 重看。
 
-> This repository contains the old source code of Markdown Reader(2.x version) and is no longer maintained.
-> It is used only to collect issues about Markdown Reader.
-> 
-> Please download the 3.x version from the [website](https://md-reader.github.io).
+### 快捷鍵
 
-- **Document Formats**: Preview links in `file://`, `http://`, `https://` and files with `.md`, `.mkd`, `.mdx`, `.markdown` extensions:
-  - `https://example.com/example.md` (online Markdown URL)
-  - `file:///Users/my-project/readme.markdown` (local Markdown file, \*[requires specific permissions](#allowing-file-access-permission))
-- **Syntax Plugins**: Emoji, superscripts/subscripts, checkboxes, math, flowcharts, Gantt charts, TOC, insertions, abbreviations, annotations, alerts.
-- **Themes**: High quality light/dark themes and code highlighting.
-- **Hot Reloading**: Real-time document changes and centered display for better reading.
-- **Document Organization**: Sidebar directory, original content preview, and image media support.
-- **Shortcuts**: Quick function invocation with web extension shortcuts.
+| 快捷鍵                    | 功能                          |
+| ------------------------- | ----------------------------- |
+| `Alt+Shift+E`             | 開關編輯模式                  |
+| `Ctrl+S` / `Ctrl+Shift+S` | 存檔 / 另存新檔（編輯模式中） |
+| `Alt+Shift+B`             | 顯示 / 隱藏側邊欄             |
+| `Alt+Shift+C`             | 內容置中                      |
+| `Alt+Shift+R`             | 自動刷新                      |
+| `Alt+Shift+T`             | 切換主題                      |
 
-![banner](./example/example-1.png)
+## 安裝
 
-The default theme styles are stored in https://github.com/md-reader/theme. If you’d like to view or customize the theme styles, feel free to visit the link and adjust the CSS files as needed.
+### 用打包好的 zip（給同事）
 
-## Installation
+1. 把 `md-reader-pro-<版本>.zip` 解壓縮到固定位置，例如 `D:\tools\md-reader-pro`（之後不要刪除或搬動）。
+2. 到 `chrome://extensions`，打開右上角「開發人員模式」。
+3. 按「載入未封裝項目」，選解壓縮出來、裡面有 `manifest.json` 的資料夾。
+4. 安裝後會自動開啟歡迎頁，照著開啟「**允許存取檔案網址**」，本機的 `.md` 才會被渲染。
 
-### A. Install from web extension Store
+更新時解壓縮新版覆蓋原資料夾，再到 `chrome://extensions` 按「重新載入」↻ 即可，設定會保留。
+zip 內附的 `安裝說明.txt` 有更完整的說明與常見問題。
 
-<a href="https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg" target="_blank"><img src="./src/images/Chrome.png" style="width:50px"/></a>
-<a href="https://microsoftedge.microsoft.com/addons/detail/markdown-reader/djnplooklihmkcioemdjfcednfkpiodc" target="_blank"><img src="./src/images/Edge.png" style="width:50px"/></a>
-<a href="https://addons.mozilla.org/firefox/addon/markdown-reader-ext/" target="_blank"><img src="./src/images/Firefox.png" style="width:50px"/></a>
-<a href="https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg" target="_blank"><img src="./src/images/Arc.png" style="width:50px"/></a>
+### 從原始碼建置
 
-### B. Building installation
+需要 Node.js 16 以上。
 
-Example of Chrome:
+```bash
+# 安裝相依套件（本專案使用 pnpm）
+npx pnpm@8 install
 
-1. Clone the `md-reader` repository and build it:
+# 建置到 extension/ 資料夾，之後用「載入未封裝項目」選 extension/
+npx webpack --config ./build/webpack.prod.js
 
-   ```bash
-   # Clone this repository
-   git clone https://github.com/md-reader/md-reader.git && cd md-reader
+# 開發模式（存檔自動重建）
+npx pnpm@8 run dev
 
-   # Install dependencies
-   pnpm install
+# 建置並打包成要分享的 zip：dist/md-reader-pro-<版本>.zip
+npx pnpm@8 run pack:share
+```
 
-   # Build the extension
-   pnpm build
-   ```
+出新版前，記得把 `src/manifest.json` 的 `version` 往上加，才分得出是哪一版。
 
-2. After a successful build, the `md-reader/dist` folder will contain the `md-reader-xxx.zip` extension package.
+## 專案結構
 
-3. Go to the Extensions management page in Chrome and drag the extension into the browser to install it.
+| 路徑                     | 內容                                                  |
+| ------------------------ | ----------------------------------------------------- |
+| `src/main.ts`            | Markdown 頁面的主程式（渲染、側邊欄、按鈕、自動刷新） |
+| `src/core/markdown.ts`   | markdown-it 設定、插件與參數、frontmatter             |
+| `src/core/files.ts`      | 側邊欄「檔案」分頁的資料夾樹                          |
+| `src/dir-frame.ts`       | 讀取 Chrome 的 `file://` 資料夾列表；資料夾檢視頁     |
+| `src/core/editor.ts`     | 編輯模式與存檔                                        |
+| `src/core/tour.ts`       | 第一次開啟時的導覽                                    |
+| `src/core/runtime.ts`    | 擴充更新後，已開分頁的斷線處理                        |
+| `src/options/`           | 進階設定頁、歡迎頁                                    |
+| `src/popup/`             | 工具列 popup                                          |
+| `scripts/pack-share.mjs` | 打包分享用 zip                                        |
+| `share/安裝說明.txt`     | 放進 zip 的中文安裝說明                               |
 
-## Usage
+## 隱私
 
-Example of Chrome:
+- 不收集、不上傳任何資料；沒有分析、追蹤或帳號系統。
+- 唯一的網路請求是：重新讀取你正在看的那個 Markdown 網址（自動刷新用），以及文件裡引用的遠端圖片 / 連結（由瀏覽器直接載入）。
+- 本機檔案只在瀏覽器裡渲染。資料夾列表是讀取 Chrome 內建的 `file://` 列表頁，結果只傳回同一個分頁。
 
-After installation, Chrome is now able to preview online markdown documents. However, it is not able to preview local markdown documents by default and requires enabling file access permission for the Chrome extension.
+## 授權與致謝
 
-### Allowing File Access Permission
+本專案修改自 [md-reader](https://github.com/md-reader/md-reader) 2.x 的開源版本（Copyright (c) 2018-present Bener），依 MIT License 發布，條款見 [LICENSE](./LICENSE)。
 
-> Due to security reasons, Chrome by default disables extension access to local files. Therefore, after installing the plugin, you need to manually enable the permission in order to preview local markdown files.
-
-In the Chrome Extensions management page, locate the installed "Markdown Reader" extension, click on "Details", and find the option "Allow access to file URLs" in the details page. Switch it to the enabled state (Please rest assured that "Markdown Reader" only performs read and display operations on markdown files and will not modify or upload user file data).
-
-<br/>
-
-Now all the work is done~!ヾ(◍°∇°◍)ﾉ
-
-Try the effect by opening this online document: [Example Document](https://raw.githubusercontent.com/md-reader/md-reader/main/example/example.md); You can also try dragging a Markdown document directly into the browser!
-
-Feel free to ask any questions or provide suggestions.
-
-Giving a star to show your support is also an encouragement for me~!
-
-## Join the WeChat Community
-
-Scan the code to get the latest news and technical support:
-
-<img src="./src/images/mp-qrcode.jpg" alt="" style="width:220px"/>
-
-## License
-
-License [MIT](https://github.com/md-reader/md-reader/blob/main/LICENSE)
-
-© 2018-present, [Bener](https://github.com/Heroor)
+本專案為獨立維護的修改版，與原作者無關；相關問題請勿回報給原專案。

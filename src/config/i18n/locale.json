@@ -31,7 +31,7 @@
     "TaskLists": "TaskList",
     "TOC": "TOC",
     "Alert": "Alert",
-    "warning_message": "Open the details page of extension \"md-reader\" and active \"allow access to file URLs\".",
+    "warning_message": "Open the details page of \"MD Reader Pro\" and turn on \"Allow access to file URLs\".",
     "tab_toc": "Outline",
     "tab_files": "Files",
     "files_up": "Parent folder",
@@ -144,7 +144,7 @@
     "TaskLists": "复选框",
     "TOC": "目录",
     "Alert": "警告框",
-    "warning_message": "请在 “md-reader” 扩展程序的 “详情” 中开启 “允许访问文件网址” 权限。",
+    "warning_message": "请在「MD Reader Pro」扩展程序的「详情」中开启「允许访问文件网址」。",
     "tab_toc": "大纲",
     "tab_files": "文件",
     "files_up": "上一级文件夹",
@@ -257,7 +257,7 @@
     "TaskLists": "任務列表",
     "TOC": "目錄",
     "Alert": "警告框",
-    "warning_message": "請在 “md-reader” 扩展程序的 “詳情” 中開啟 “允許訪問文件網址” 權限。",
+    "warning_message": "請在「MD Reader Pro」擴充功能的「詳細資料」中開啟「允許存取檔案網址」。",
     "tab_toc": "大綱",
     "tab_files": "檔案",
     "files_up": "上一層資料夾",
@@ -370,7 +370,7 @@
     "TaskLists": "작업 목록",
     "TOC": "카테고리",
     "Alert": "알림 블록",
-    "warning_message": "확장 프로그램 \"md-reader\" 의 세부 정보 페이지를 열고 \"파일 URL에 대한 액세스 허용\"을 활성화 하세요."
+    "warning_message": "확장 프로그램 \"MD Reader Pro\"의 세부 정보 페이지를 열고 \"파일 URL에 대한 액세스 허용\"을 활성화 하세요."
   },
   "uk": {
     "label_enable": "Увімкнути",
@@ -395,6 +395,6 @@
     "TaskLists": "Списки завдань",
     "TOC": "Зміст",
     "Alert": "Блок сповіщень",
-    "warning_message": "Відкрийте сторінку керування розширенням «md-reader» та активуйте «Надавати доступ до URL-адрес файлу»."
+    "warning_message": "Відкрийте сторінку керування розширенням «MD Reader Pro» та активуйте «Надавати доступ до URL-адрес файлу»."
   }
 }
