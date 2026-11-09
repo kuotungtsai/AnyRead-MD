@@ -30,6 +30,8 @@ export interface Data {
   sideTab?: SideTab
   /** replace Chrome's plain file:// folder listing with md-reader's view */
   dirView?: boolean
+  /** extra file extensions opened as a highlighted code view, e.g. ['c', 'h'] */
+  codeExts?: string[]
   /** first-run tutorial has been shown */
   tourDone?: boolean
   /** set once saved plugin lists include NEW_PLUGINS decisions */
@@ -65,6 +67,7 @@ export function getDefaultData(mergeData: Data = {}): Data {
     pageTheme: PAGE_THEMES[0],
     sideTab: 'toc',
     dirView: true,
+    codeExts: [],
     tourDone: false,
     ...mergeData,
     ...(mdPlugins && { mdPlugins }),

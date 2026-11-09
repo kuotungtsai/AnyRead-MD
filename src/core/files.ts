@@ -51,9 +51,12 @@ const decode = (s: string) => {
 const dirName = (dir: string) =>
   decode(dir.replace(/\/$/, '').split('/').pop() || dir)
 
-function sortEntries(entries: DirEntry[]): DirEntry[] {
+function sortEntries(
+  entries: DirEntry[],
+  isViewable: (name: string) => boolean,
+): DirEntry[] {
   return entries
-    .filter(e => e.isDir || MD_EXT_RE.test(e.name))
+    .filter(e => e.isDir || isViewable(e.name))
     .filter(e => !e.name.startsWith('.'))
     .sort((a, b) =>
       a.isDir !== b.isDir
@@ -72,11 +75,15 @@ export function isFileProtocol(): boolean {
  * Folder tree panel for the side bar. Root starts at the current file's
  * directory; folders expand lazily.
  */
-export function createFileTree(labels: {
-  up: string
-  empty: string
-  error: string
-}) {
+export function createFileTree(
+  labels: {
+    up: string
+    empty: string
+    error: string
+  },
+  /** files listed in the tree: markdown by default */
+  isViewable: (name: string) => boolean = name => MD_EXT_RE.test(name),
+) {
   const currentFile = stripUrl(location.href)
   let rootDir = dirOf(currentFile)
 
@@ -114,7 +121,7 @@ export function createFileTree(labels: {
     entries: DirEntry[],
     depth: number,
   ) {
-    const items = sortEntries(entries)
+    const items = sortEntries(entries, isViewable)
     if (!items.length) {
       const li = new Ele<HTMLElement>('li', {
         className: className.FILES_EMPTY,

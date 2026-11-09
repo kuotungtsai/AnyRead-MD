@@ -9,6 +9,14 @@ import type { Theme } from '@/config/page-themes'
 import { getDefaultData, getDefaultMdConfig, type Data } from '@/core/data'
 import { mdRender, type MdOptions } from '@/core/markdown'
 import { createFileTree, isFileProtocol } from '@/core/files'
+import {
+  codeLanguage,
+  fileName,
+  sanitizeExts,
+  toCodeFence,
+  urlExtension,
+  viewableMatcher,
+} from '@/core/file-types'
 import { createEditor } from '@/core/editor'
 import { startTour, type TourStep } from '@/core/tour'
 import { safeCall, setRuntimeLanguage, onStale } from '@/core/runtime'
@@ -69,7 +77,19 @@ function main(data: Data) {
     actions[action]?.(value, oldValue)
   })
 
-  if (!configData.enable || !CONTENT_TYPES.includes(document.contentType)) {
+  /* a file type the user added in the options page: show it as one
+     highlighted code block instead of parsing it as markdown */
+  const fileExt = urlExtension(location.href)
+  const codeLang = sanitizeExts(configData.codeExts).includes(fileExt)
+    ? codeLanguage(fileExt)
+    : null
+
+  if (
+    !configData.enable ||
+    !(codeLang
+      ? isTextDocument()
+      : CONTENT_TYPES.includes(document.contentType))
+  ) {
     return
   }
 
@@ -107,6 +127,7 @@ function main(data: Data) {
     (target: HTMLElement | Ele) =>
     (code: string = '', options?: MdOptions) => {
       const mdConfig = getDefaultMdConfig(configData.mdConfig)
+      if (codeLang) code = toCodeFence(code ?? '', codeLang)
       target.innerHTML = mdRender(code, {
         theme: toTheme(configData.pageTheme),
         plugins: configData.mdPlugins,
@@ -115,7 +136,9 @@ function main(data: Data) {
         ...options,
       })
       const ele = target instanceof Ele ? target.ele : target
-      document.title = ele.querySelector('h1')?.textContent.trim() ?? ''
+      document.title = codeLang
+        ? fileName(location.pathname)
+        : ele.querySelector('h1')?.textContent.trim() ?? ''
       editor?.syncTitle()
       globalEvent.emit(
         'contentRendered',
@@ -160,11 +183,14 @@ function main(data: Data) {
     className: className.MD_SIDE_TOC,
   })
   const fileTree = isFileProtocol()
-    ? createFileTree({
-        up: localize('files_up'),
-        empty: localize('files_empty'),
-        error: localize('files_error'),
-      })
+    ? createFileTree(
+        {
+          up: localize('files_up'),
+          empty: localize('files_empty'),
+          error: localize('files_error'),
+        },
+        viewableMatcher(configData.codeExts),
+      )
     : null
   if (fileTree) {
     const tabs = new Ele<HTMLElement>('div', {
@@ -545,6 +571,19 @@ function main(data: Data) {
       })
     }
   }
+}
+
+/** Chrome shows the file as plain text (a lone <pre>), e.g. text/x-c */
+function isTextDocument(): boolean {
+  const type = document.contentType
+  return (
+    !!getRawContainer() &&
+    (CONTENT_TYPES.includes(type) ||
+      (/^text\//.test(type) && type !== 'text/html') ||
+      /^application\/(json|(x-)?javascript|x-sh|x-python|x-yaml|yaml|toml)$/.test(
+        type,
+      ))
+  )
 }
 
 storage.get().then(main)

@@ -1,5 +1,6 @@
 import storage from '@/core/storage'
 import commands from '@/core/commands'
+import { matchPatterns, sanitizeExts } from '@/core/file-types'
 
 chrome.runtime.onMessage.addListener(({ action, data }, sender, callback) => {
   messageHandler(action, data, sender, callback)
@@ -75,3 +76,50 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
     chrome.tabs.create({ url: chrome.runtime.getURL('options.html#welcome') })
   }
 })
+
+/* user-chosen code file types (options page): the markdown types are static
+   manifest content scripts; these are registered here so they can change
+   without a manifest edit. */
+const CODE_SCRIPT_ID = 'md-reader-code-files'
+
+let codeScriptsQueue: Promise<void> = Promise.resolve()
+function syncCodeScripts(exts?: unknown) {
+  // serialize: a quick second change must not race the first registration
+  codeScriptsQueue = codeScriptsQueue.then(async () => {
+    if (exts === undefined) exts = (await storage.get('codeExts')).codeExts
+    const matches = matchPatterns(sanitizeExts(exts))
+    try {
+      const existing = await chrome.scripting.getRegisteredContentScripts({
+        ids: [CODE_SCRIPT_ID],
+      })
+      if (existing.length) {
+        await chrome.scripting.unregisterContentScripts({
+          ids: [CODE_SCRIPT_ID],
+        })
+      }
+      if (matches.length) {
+        await chrome.scripting.registerContentScripts([
+          {
+            id: CODE_SCRIPT_ID,
+            js: ['js/content.js'],
+            css: ['css/content.css'],
+            matches,
+            runAt: 'document_idle',
+            persistAcrossSessions: true,
+          },
+        ])
+      }
+    } catch (err) {
+      console.error('md-reader: could not register code file types', err)
+    }
+  })
+  return codeScriptsQueue
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.codeExts) {
+    syncCodeScripts(changes.codeExts.newValue ?? [])
+  }
+})
+chrome.runtime.onInstalled.addListener(() => syncCodeScripts())
+chrome.runtime.onStartup.addListener(() => syncCodeScripts())

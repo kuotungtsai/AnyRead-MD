@@ -10,6 +10,7 @@
  */
 import storage from '@/core/storage'
 import i18n from '@/config/i18n'
+import { isMarkdownName, viewableMatcher } from '@/core/file-types'
 
 export interface DirEntry {
   name: string
@@ -20,7 +21,6 @@ export interface DirEntry {
 }
 
 const MARK = 'mdr-dir='
-const MD_RE = /\.(md|mdx|mkd|markdown)$/i
 
 function collectEntries(): DirEntry[] {
   const rows = Array.from(document.querySelectorAll('#tbody tr'))
@@ -78,6 +78,7 @@ body.mdr-dir > :not(.mdr-view){display:none !important}
 .mdr-icon{width:1.4em;text-align:center;flex:none}
 .mdr-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mdr-md .mdr-name{font-weight:600;color:var(--primary)}
+.mdr-code .mdr-name{color:var(--primary)}
 .mdr-other{opacity:.6}
 .mdr-meta{flex:none;font-size:12px;color:var(--sub);white-space:nowrap}
 .mdr-meta.size{width:80px;text-align:right}.mdr-meta.date{width:170px;text-align:right}
@@ -109,6 +110,10 @@ async function topMode() {
   const data: any = await storage.get()
   if (data?.enable === false || data?.dirView === false) return
   const t = i18n(data?.language)
+  // markdown + the extra code types from the options page
+  const isViewable = viewableMatcher(data?.codeExts)
+  const kind = (e: DirEntry) =>
+    e.isDir ? 0 : isMarkdownName(e.name) ? 1 : isViewable(e.name) ? 2 : 3
 
   whenListed(() => {
     const entries = collectEntries()
@@ -155,16 +160,13 @@ async function topMode() {
     function visible(): DirEntry[] {
       const q = filter.value.trim().toLowerCase()
       const items = entries.filter(
-        e =>
-          (showAll || e.isDir || MD_RE.test(e.name)) && !e.name.startsWith('.'),
+        e => (showAll || kind(e) < 3) && !e.name.startsWith('.'),
       )
       return items
         .filter(e => !q || e.name.toLowerCase().includes(q))
         .sort((a, b) => {
-          const rank = (e: DirEntry) =>
-            e.isDir ? 0 : MD_RE.test(e.name) ? 1 : 2
           return (
-            rank(a) - rank(b) ||
+            kind(a) - kind(b) ||
             a.name.localeCompare(b.name, undefined, { numeric: true })
           )
         })
@@ -188,17 +190,13 @@ async function topMode() {
         list.append(el('li', { class: 'mdr-empty' }, t('files_empty')))
       }
       items.forEach(e => {
-        const isMd = MD_RE.test(e.name)
+        const k = kind(e)
         const li = el('li', {
-          class: e.isDir ? 'mdr-dir-item' : isMd ? 'mdr-md' : 'mdr-other',
+          class: ['mdr-dir-item', 'mdr-md', 'mdr-code', 'mdr-other'][k],
         })
         const a = el('a', { href: e.url, title: e.name })
         a.append(
-          el(
-            'span',
-            { class: 'mdr-icon' },
-            e.isDir ? '📁' : isMd ? '📝' : '📄',
-          ),
+          el('span', { class: 'mdr-icon' }, ['📁', '📝', '📃', '📄'][k]),
           el('span', { class: 'mdr-name' }, e.name),
           el('span', { class: 'mdr-meta size' }, e.isDir ? '' : e.size || ''),
           el('span', { class: 'mdr-meta date' }, e.date || ''),

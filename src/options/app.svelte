@@ -8,6 +8,7 @@
     type MdConfig,
     type MdCoreConfig,
   } from '@/core/data'
+  import { parseExtensions, sanitizeExts } from '@/core/file-types'
 
   let localize = i18n()
 
@@ -34,6 +35,11 @@
   let openGear: Record<string, boolean> = {}
   let status = ''
   let rows: Row[] = []
+
+  /* extra file types opened as a code view */
+  let codeExts: string[] = []
+  let codeExtsText = ''
+  let codeExtsInvalid: string[] = []
 
   /* welcome / quick start (opened automatically after install) */
   let showWelcome = location.hash === '#welcome'
@@ -68,6 +74,8 @@
     localize = i18n(data.language)
     config = data.mdConfig
     enabled = [...data.mdPlugins]
+    codeExts = sanitizeExts(data.codeExts)
+    codeExtsText = codeExts.join(', ')
     texts = Object.fromEntries(
       CONFIGURABLE.map(name => {
         const opts = config.plugins[name]
@@ -128,6 +136,15 @@
     else delete plugins[name]
     config = { ...config, plugins }
     saveConfig()
+  }
+
+  async function saveCodeExts() {
+    const { exts, invalid } = parseExtensions(codeExtsText)
+    codeExtsInvalid = invalid
+    codeExts = exts
+    codeExtsText = exts.join(', ')
+    await storage.set('codeExts', exts)
+    flash(localize('opt_saved'))
   }
 
   async function resetAll() {
@@ -236,6 +253,29 @@
       {/if}
     {/each}
   </div>
+
+  <section class="file-types">
+    <div class="name">{localize('opt_file_types')}</div>
+    <div class="desc">{localize('opt_file_types_desc')}</div>
+    <form class="ext-form" on:submit|preventDefault={saveCodeExts}>
+      <input
+        type="text"
+        spellcheck="false"
+        autocomplete="off"
+        placeholder="c, h, cpp, py, txt"
+        aria-label={localize('opt_file_types')}
+        bind:value={codeExtsText}
+        class:invalid={codeExtsInvalid.length}
+      />
+      <button class="apply" type="submit">{localize('opt_file_types_save')}</button>
+    </form>
+    {#if codeExtsInvalid.length}
+      <div class="error">
+        {localize('opt_file_types_invalid')}: {codeExtsInvalid.join(' ')}
+      </div>
+    {/if}
+    <div class="desc">{localize('opt_file_types_note')}</div>
+  </section>
 
   <footer>
     <button class="reset" on:click={resetAll}>{localize('opt_reset')}</button>
@@ -350,6 +390,32 @@
     font-family: Consolas, monospace;
     font-size: 12px;
     resize: vertical;
+  }
+  .file-types {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #eaebee;
+  }
+  .ext-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 8px 0 4px;
+  }
+  .ext-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+  }
+  .ext-form input.invalid {
+    border-color: #ff6767;
+  }
+  .ext-form .apply {
+    margin-top: 0;
   }
   textarea.invalid {
     border-color: #ff6767;
