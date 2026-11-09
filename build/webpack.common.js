@@ -4,12 +4,21 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const FriendlyErrors = require('@nuxt/friendly-errors-webpack-plugin')
 const SveltePreprocess = require('svelte-preprocess')
+const fs = require('fs')
+
+// mermaid@9 imports a cytoscape file that newer cytoscape no longer exports
+const pnpmDir = resolve(__dirname, '../node_modules/.pnpm')
+const cytoscapeDir = fs.existsSync(pnpmDir)
+  ? fs.readdirSync(pnpmDir).find(d => /^cytoscape@/.test(d))
+  : null
 
 module.exports = {
   entry: {
     content: resolve(__dirname, '../src/main.ts'),
     background: resolve(__dirname, '../src/background.ts'),
     popup: resolve(__dirname, '../src/popup/index.ts'),
+    options: resolve(__dirname, '../src/options/index.ts'),
+    'dir-frame': resolve(__dirname, '../src/dir-frame.ts'),
   },
   output: {
     filename: 'js/[name].js',
@@ -67,6 +76,13 @@ module.exports = {
     extensions: ['.ts', '.js', '.svelte', '.json', '.less'],
     alias: {
       '@': resolve(__dirname, '../src'),
+      ...(cytoscapeDir && {
+        'cytoscape/dist/cytoscape.umd.js$': resolve(
+          pnpmDir,
+          cytoscapeDir,
+          'node_modules/cytoscape/dist/cytoscape.umd.js',
+        ),
+      }),
     },
   },
   stats: 'errors-only',
@@ -92,6 +108,10 @@ module.exports = {
         {
           from: resolve(__dirname, '../src/popup/index.html'),
           to: 'popup.html',
+        },
+        {
+          from: resolve(__dirname, '../src/options/index.html'),
+          to: 'options.html',
         },
       ],
     }),

@@ -25,7 +25,7 @@
 
   storage.get().then((_data: Data) => {
     // need an assignment to updata UI
-    data = { ...data, ..._data }
+    data = getDefaultData(_data)
   })
 
   $: if (data.language) {
@@ -37,6 +37,21 @@
     setTimeout(() => {
       chrome.runtime.sendMessage({ action: 'storage', data: { key, value } })
     }, 0)
+  }
+
+  function savePlugins() {
+    updateConfig('pluginsMigrated', true)
+    updateConfig('mdPlugins', data.mdPlugins)
+  }
+
+  function setAllPlugins(on: boolean) {
+    if (!data.enable) return
+    data.mdPlugins = on ? [...MD_PLUGINS] : []
+    savePlugins()
+  }
+
+  function openOptions() {
+    chrome.runtime.openOptionsPage()
   }
 
   function changeLocale(language) {
@@ -87,8 +102,30 @@
       </FormField>
     </div>
 
+    <div class="form-item inline">
+      <span class="label-item">{localize('label_dir_view')}:</span>
+      <FormField align="end">
+        <Switch
+          disabled={!data.enable}
+          bind:checked={data.dirView}
+          color="primary"
+          on:change={() => updateConfig('dirView', data.dirView)}
+        />
+      </FormField>
+    </div>
+
     <div class="form-item">
-      <div class="label-item">{localize('label_md-plugins')}:</div>
+      <div class="label-item plugins-label">
+        <span>{localize('label_md-plugins')}:</span>
+        <span class="all-btns">
+          <button disabled={!data.enable} on:click={() => setAllPlugins(true)}
+            >{localize('opt_all_on')}</button
+          >
+          <button disabled={!data.enable} on:click={() => setAllPlugins(false)}
+            >{localize('opt_all_off')}</button
+          >
+        </span>
+      </div>
       <Set
         let:chip
         bind:selected={data.mdPlugins}
@@ -100,7 +137,7 @@
           {chip}
           title={chip}
           on:click={() =>
-            data.enable && updateConfig('mdPlugins', data.mdPlugins)}
+            data.enable && savePlugins()}
           ><Text>{localize(chip)}</Text></Chip
         >
       </Set>
@@ -131,6 +168,12 @@
         </Select>
       </FormField>
     </div>
+
+    <div class="form-item">
+      <button class="advanced" on:click={openOptions}>
+        {localize('label_advanced')} →
+      </button>
+    </div>
   </div>
 </main>
 
@@ -151,6 +194,39 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 15px;
+  }
+  .plugins-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .all-btns button {
+    margin-left: 4px;
+    padding: 2px 8px;
+    border: 1px solid #607cd2;
+    border-radius: 10px;
+    font-size: 11px;
+    color: #607cd2;
+    background: #fff;
+    cursor: pointer;
+  }
+  .all-btns button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .advanced {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid #607cd2;
+    border-radius: 6px;
+    color: #607cd2;
+    background: #fff;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .advanced:hover {
+    background: rgba(96, 124, 210, 0.1);
   }
   .label-item {
     font-weight: bolder;

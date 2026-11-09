@@ -2,16 +2,16 @@
   "name": "__MSG_ext_name__",
   "version": "2.12.12",
   "version_name": "2.12.12",
-  "author": "Bener",
+  "author": "Bener (MIT) + local pro build",
   "manifest_version": 3,
   "description": "__MSG_ext_desc__",
   "default_locale": "en",
   "icons": {
-    "16": "images/logo-stroke.png",
-    "32": "images/logo-stroke.png",
-    "48": "images/logo-stroke.png",
-    "128": "images/logo-stroke.png",
-    "512": "images/logo-stroke.png"
+    "16": "images/logo-pro-16.png",
+    "32": "images/logo-pro-32.png",
+    "48": "images/logo-pro-48.png",
+    "128": "images/logo-pro-128.png",
+    "512": "images/logo-pro-512.png"
   },
   "web_accessible_resources": [
     {
@@ -23,8 +23,13 @@
     "service_worker": "js/background.js"
   },
   "action": {
-    "default_title": "md-reader",
-    "default_popup": "popup.html"
+    "default_title": "MD Reader Pro",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/logo-pro-16.png",
+      "32": "images/logo-pro-32.png",
+      "48": "images/logo-pro-48.png"
+    }
   },
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["*://*/*"],
@@ -66,6 +71,12 @@
         "file://*/*.MKD?*",
         "file://*/*.MARKDOWN?*"
       ]
+    },
+    {
+      "matches": ["file:///*/"],
+      "js": ["js/dir-frame.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
     }
   ],
   "commands": {
@@ -93,5 +104,9 @@
         "default": "Alt+Shift+T"
       }
     }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   }
 }

@@ -40,15 +40,28 @@ const PLUGINS: Plugins = {
   TaskLists: [mTaskLists],
   TOC: [mToc],
   Alert: [mAlert],
+  MultimdTable: [mMultimdTable],
 }
+
+/** Plugins whose options are applied by md-reader itself, not md.use() */
+const SPECIAL = ['Frontmatter', 'Linkify']
 
 export interface MdOptions {
   [key: string]: any
   config?: MarkdownIt.Options
   plugins?: Array<string>
+  /** user-defined options per plugin name, merged over built-in defaults */
+  pluginOptions?: { [plugin: string]: Record<string, any> }
 }
 
-function initRender({ config = {}, plugins = [...MD_PLUGINS] }: MdOptions) {
+const isPlainObject = (v: unknown): v is Record<string, any> =>
+  !!v && typeof v === 'object' && !Array.isArray(v)
+
+function initRender({
+  config = {},
+  plugins = [...MD_PLUGINS],
+  pluginOptions = {},
+}: MdOptions) {
   const copyButton = new Ele<HTMLElement>(
     'button',
     {
@@ -84,18 +97,36 @@ function initRender({ config = {}, plugins = [...MD_PLUGINS] }: MdOptions) {
     ...config,
   })
 
-  // parse email
-  md.linkify.set({ fuzzyEmail: true })
-  // builtin plugins
-  md.use(mMultimdTable)
+  // linkify-it options (parse email by default)
+  const linkifyOpts = isPlainObject(pluginOptions.Linkify)
+    ? pluginOptions.Linkify
+    : {}
+  try {
+    md.linkify.set({ fuzzyEmail: true, ...linkifyOpts })
+  } catch (err) {
+    console.error('[md-reader] invalid Linkify options:', err)
+  }
 
   // custom plugins
   plugins.forEach(name => {
+    if (SPECIAL.includes(name)) return
     let plugin = PLUGINS[name]
     if (typeof plugin === 'function') {
       plugin = plugin(arguments[0])
     }
-    plugin && md.use(plugin[0], ...plugin.slice(1))
+    if (!plugin) return
+    const [fn, ...args] = plugin
+    const userOpts = pluginOptions[name]
+    if (isPlainObject(userOpts) && Object.keys(userOpts).length) {
+      // merge user options into the first options argument
+      const base = isPlainObject(args[0]) ? args[0] : {}
+      args[0] = { ...base, ...userOpts }
+    }
+    try {
+      md.use(fn, ...args)
+    } catch (err) {
+      console.error(`[md-reader] plugin "${name}" failed to load:`, err)
+    }
   })
 
   if (plugins.includes('Mermaid')) {
@@ -107,23 +138,71 @@ function initRender({ config = {}, plugins = [...MD_PLUGINS] }: MdOptions) {
   return md
 }
 
-// identify & filter frontmatter
-function removeFrontmatter(content: string): string {
-  const frontmatterRegex = /^---[\s\S]+?---\n/
-  return content.replace(frontmatterRegex, '')
+// frontmatter must start on the very first line of the file
+const FRONTMATTER_RE = /^﻿?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/
+
+export function splitFrontmatter(content: string): {
+  frontmatter: string | null
+  body: string
+} {
+  const m = content.match(FRONTMATTER_RE)
+  return m
+    ? { frontmatter: m[1], body: content.slice(m[0].length) }
+    : { frontmatter: null, body: content }
+}
+
+/**
+ * Render simple YAML frontmatter as a key/value table. Indented or list
+ * lines stay with the preceding key. No YAML library: values are shown as
+ * escaped text, never evaluated.
+ */
+export function renderFrontmatter(
+  yaml: string,
+  { collapsed = false, title = 'Metadata' }: Record<string, any> = {},
+): string {
+  const rows: Array<[string, string]> = []
+  for (const line of yaml.split(/\r?\n/)) {
+    const kv = line.match(/^([A-Za-z0-9_][\w.-]*)\s*:\s?(.*)$/)
+    if (kv) {
+      rows.push([kv[1], kv[2]])
+    } else if (rows.length && line.trim()) {
+      const last = rows[rows.length - 1]
+      last[1] += (last[1] ? '\n' : '') + line.replace(/^\s{0,2}/, '')
+    }
+  }
+  const body = rows.length
+    ? `<table><tbody>${rows
+        .map(
+          ([k, v]) =>
+            `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`,
+        )
+        .join('')}</tbody></table>`
+    : `<pre>${escapeHtml(yaml)}</pre>`
+  return `<details class="${className.FRONTMATTER}"${
+    collapsed ? '' : ' open'
+  }><summary>${escapeHtml(String(title))}</summary>${body}</details>`
 }
 
 interface MdRender {
   (code: string, options: MdOptions): string
   md?: MarkdownIt
+  options?: MdOptions
 }
 export const mdRender: MdRender = (code, options): string => {
   if (!mdRender.md || options) {
-    mdRender.md = initRender(options)
+    mdRender.md = initRender(options || {})
+    mdRender.options = options || {}
   }
-  // filter frontmatter
-  const filteredCode = removeFrontmatter(code)
-  return mdRender.md.render(filteredCode)
+  const { plugins = [...MD_PLUGINS], pluginOptions = {} } = mdRender.options
+  const { frontmatter, body } = splitFrontmatter(code)
+  const html = mdRender.md.render(body)
+  if (frontmatter !== null && plugins.includes('Frontmatter')) {
+    const opts = isPlainObject(pluginOptions.Frontmatter)
+      ? pluginOptions.Frontmatter
+      : {}
+    return renderFrontmatter(frontmatter, opts) + html
+  }
+  return html
 }
 
 export default initRender

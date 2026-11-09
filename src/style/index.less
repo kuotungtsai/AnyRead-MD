@@ -389,3 +389,214 @@ body.md-reader {
     }
   }
 }
+
+/* ---------- side tabs / folder tree (pro features) ---------- */
+body.md-reader {
+  .md-reader__side-toc {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .md-reader__side-tabs {
+    position: sticky;
+    top: -22px;
+    display: flex;
+    gap: 4px;
+    margin: -22px 0 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-side-border);
+    background: var(--color-side-bg);
+    z-index: 1;
+  }
+  .md-reader__side-tab {
+    flex: 1;
+    padding: 6px 0;
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    font-size: 13px;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    &:hover {
+      color: var(--color-primary);
+    }
+    &--active {
+      font-weight: bolder;
+      color: var(--color-primary);
+      background: var(--color-primary-alpha-10);
+    }
+  }
+  .md-reader__files {
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+  }
+  .md-reader__files-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px 8px;
+    font-size: 13px;
+    font-weight: bolder;
+  }
+  .md-reader__files-up {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    background: var(--color-primary-alpha-10);
+    cursor: pointer;
+  }
+  .md-reader__files-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .md-reader__side .md-reader__files li a {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+    padding-right: 0.8em;
+    white-space: nowrap;
+    span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  .md-reader__files-icon {
+    flex: none;
+    width: 1em;
+    font-size: 0.85em;
+    opacity: 0.6;
+    text-align: center;
+  }
+  .md-reader__files-file--active > a {
+    font-weight: bolder;
+    color: var(--color-primary);
+  }
+  .md-reader__files-empty {
+    padding: 0.3em 0;
+    font-size: 12px;
+    color: var(--color-text-gray);
+  }
+
+  /* ---------- edit mode ---------- */
+  .md-reader__editor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    width: 50vw;
+    border-right: 1px solid var(--color-side-border);
+    background: var(--color-bg);
+    z-index: 2;
+  }
+  .md-reader__editor-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-side-border);
+    background: var(--color-side-bg);
+    button {
+      padding: 4px 10px;
+      border: 1px solid var(--color-side-border);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--color-text-primary);
+      background: var(--color-bg);
+      cursor: pointer;
+      &:hover {
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+      }
+      &:first-child {
+        color: var(--color-white);
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+      }
+    }
+  }
+  .md-reader__editor-status {
+    flex: 1;
+    overflow: hidden;
+    font-size: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--color-text-gray);
+    &.error {
+      color: var(--color-danger);
+    }
+  }
+  .md-reader__editor-textarea {
+    flex: 1;
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New',
+      monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    tab-size: 2;
+    color: var(--color-text-primary);
+    background: var(--color-bg);
+  }
+
+  &.md-reader-editing {
+    .md-reader__side,
+    .md-reader__btn--side-expand {
+      display: none !important;
+    }
+    .md-reader__body {
+      --side-width: 50vw;
+    }
+  }
+  @media print {
+    .md-reader__editor {
+      display: none !important;
+    }
+  }
+}
+
+.md-reader__btn--edit-toggle {
+  position: absolute;
+  right: 56px;
+}
+
+/* ---------- frontmatter ---------- */
+body.md-reader .md-reader__markdown-content details.md-reader__frontmatter {
+  margin: 0 0 1.5em;
+  padding: 0.6em 1em;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-side-bg);
+  summary {
+    font-weight: bolder;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+  }
+  table {
+    width: 100%;
+    margin: 0.6em 0 0.2em;
+  }
+  th {
+    width: 1%;
+    text-align: left;
+    white-space: nowrap;
+  }
+  td {
+    white-space: pre-wrap;
+  }
+}

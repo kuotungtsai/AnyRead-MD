@@ -6,8 +6,11 @@ import { initPlugins } from '@/plugins'
 import lifecycle from '@/core/lifecycle'
 import className from '@/config/class-name'
 import type { Theme } from '@/config/page-themes'
-import { getDefaultData, type Data } from '@/core/data'
+import { getDefaultData, getDefaultMdConfig, type Data } from '@/core/data'
 import { mdRender, type MdOptions } from '@/core/markdown'
+import { createFileTree, isFileProtocol } from '@/core/files'
+import { createEditor } from '@/core/editor'
+import i18n from '@/config/i18n'
 import {
   getHeads,
   getRawContainer,
@@ -20,6 +23,7 @@ import {
 import codeIcon from '@/images/icon_code.svg'
 import sideIcon from '@/images/icon_side.svg'
 import goTopIcon from '@/images/icon_go_top.svg'
+import editIcon from '@/images/icon_edit.svg'
 import '@/style/index.less'
 
 function main(data: Data) {
@@ -31,7 +35,7 @@ function main(data: Data) {
     updateMdPlugins() {
       reloading = true
       if (mdRaw) {
-        contentRender(mdRaw)
+        contentRender(editorDraft ?? mdRaw)
         renderSide()
       } else {
         window.location.reload()
@@ -89,23 +93,44 @@ function main(data: Data) {
     }`,
   })
 
+  const localize = i18n(configData.language)
+
   const mdRenderer =
     (target: HTMLElement | Ele) =>
     (code: string = '', options?: MdOptions) => {
+      const mdConfig = getDefaultMdConfig(configData.mdConfig)
       target.innerHTML = mdRender(code, {
         theme: toTheme(configData.pageTheme),
         plugins: configData.mdPlugins,
+        config: mdConfig.core,
+        pluginOptions: mdConfig.plugins,
         ...options,
       })
       const ele = target instanceof Ele ? target.ele : target
       document.title = ele.querySelector('h1')?.textContent.trim() ?? ''
+      editor?.syncTitle()
       globalEvent.emit(
         'contentRendered',
         target instanceof Ele ? target.ele : target,
       )
     }
+  let editor: ReturnType<typeof createEditor> = null
   const contentRender = mdRenderer(mdContent)
   contentRender(mdRaw)
+
+  /* advanced markdown config changed in the options page */
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || (!changes.mdConfig && !changes.mdPlugins)) return
+    if (changes.mdConfig) configData.mdConfig = changes.mdConfig.newValue
+    if (changes.mdPlugins) configData.mdPlugins = changes.mdPlugins.newValue
+    reloading = true
+    // keep an unsaved draft in the preview if there is one
+    contentRender(editorDraft ?? mdRaw)
+    renderSide()
+    reloading = false
+  })
+  /* unsaved editor content, null when nothing pending */
+  let editorDraft: string = null
 
   mdContent.on(
     'click',
@@ -121,8 +146,51 @@ function main(data: Data) {
     mdContent,
   )
 
-  /* render side */
-  const mdSide = new Ele<HTMLElement>('ul', { className: className.MD_SIDE })
+  /* render side: tabs (outline / files) + panels */
+  const mdSide = new Ele<HTMLElement>('div', { className: className.MD_SIDE })
+  const tocList = new Ele<HTMLElement>('ul', {
+    className: className.MD_SIDE_TOC,
+  })
+  const fileTree = isFileProtocol()
+    ? createFileTree({
+        up: localize('files_up'),
+        empty: localize('files_empty'),
+        error: localize('files_error'),
+      })
+    : null
+  if (fileTree) {
+    const tabs = new Ele<HTMLElement>('div', {
+      className: className.MD_SIDE_TABS,
+    })
+    const tocTab = new Ele<HTMLElement>('button', {
+      className: className.MD_SIDE_TAB,
+    })
+    tocTab.textContent = localize('tab_toc')
+    const filesTab = new Ele<HTMLElement>('button', {
+      className: className.MD_SIDE_TAB,
+    })
+    filesTab.textContent = localize('tab_files')
+    tabs.append([tocTab, filesTab])
+    mdSide.append([tabs, tocList, fileTree.panel])
+
+    const switchTab = (tab: 'toc' | 'files', persist = true) => {
+      const isFiles = tab === 'files'
+      tocTab.classList.toggle(className.MD_SIDE_TAB_ACTIVE, !isFiles)
+      filesTab.classList.toggle(className.MD_SIDE_TAB_ACTIVE, isFiles)
+      tocList.toggle(!isFiles)
+      fileTree.panel.toggle(isFiles)
+      if (isFiles) fileTree.ensureLoaded()
+      if (persist) {
+        configData.sideTab = tab
+        storage.set('sideTab', tab)
+      }
+    }
+    tocTab.on('click', () => switchTab('toc'))
+    filesTab.on('click', () => switchTab('files'))
+    switchTab(configData.sideTab === 'files' ? 'files' : 'toc', false)
+  } else {
+    mdSide.append(tocList)
+  }
   let idCache: { [content: string]: number } = Object.create(null)
   let headElements: HTMLElement[] = []
   let sideLiElements: HTMLElement[] = []
@@ -148,7 +216,47 @@ function main(data: Data) {
     svg(codeIcon),
   )
   rawToggleBtn.on('click', () => {
+    editor.close()
     lifecycle.toggleRaw([mdBody, mdSide])
+  })
+
+  /* edit mode */
+  editor = createEditor({
+    labels: {
+      save: localize('editor_save'),
+      saveAs: localize('editor_save_as'),
+      close: localize('editor_close'),
+      saved: localize('editor_saved'),
+      unsaved: localize('editor_unsaved'),
+      saveFailed: localize('editor_save_failed'),
+      firstSaveHint: localize('editor_first_save_hint'),
+    },
+    getContent: () => editorDraft ?? mdRaw,
+    onInput(content) {
+      editorDraft = content
+      contentRender(content)
+      renderSide()
+    },
+    onSaved(content) {
+      editorDraft = null
+      mdRaw = content
+      if (rawContainer) rawContainer.textContent = content
+    },
+  })
+  const editToggleBtn = new Ele<HTMLElement>(
+    'button',
+    {
+      className: [className.MD_BUTTON, className.EDIT_TOGGLE_BTN],
+      title: `${localize('editor_toggle')} (Alt+Shift+E)`,
+    },
+    svg(editIcon),
+  )
+  editToggleBtn.on('click', () => editor.toggle())
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.altKey && e.shiftKey && e.code === 'KeyE') {
+      e.preventDefault()
+      editor.toggle()
+    }
   })
 
   /* render side expand button */
@@ -215,11 +323,11 @@ function main(data: Data) {
   const buttonWrap = new Ele<HTMLElement>(
     'div',
     { className: className.BUTTON_WRAP_ELE },
-    [sideExpandBtn, rawToggleBtn, goTopBtn],
+    [sideExpandBtn, editToggleBtn, rawToggleBtn, goTopBtn],
   )
 
   /* mount elements */
-  lifecycle.mount([buttonWrap, mdBody, mdSide])
+  lifecycle.mount([buttonWrap, mdBody, mdSide, editor.panel])
   updateAnchorPosition()
 
   darkMediaQuery.addEventListener('change', (e: MediaQueryListEvent) => {
@@ -240,7 +348,8 @@ function main(data: Data) {
     void (function watch() {
       clearTimeout(pollingTimer)
       chrome.runtime.sendMessage({ action: 'fetch' }, res => {
-        if (res !== undefined) {
+        // never overwrite the editor's draft with file content
+        if (res !== undefined && editorDraft === null) {
           if (mdRaw === undefined || mdRaw === null) {
             if (res) {
               window.location.reload()
@@ -266,8 +375,8 @@ function main(data: Data) {
     headElements = getHeads(mdContent)
     df = new Ele<DocumentFragment>('#document-fragment')
     sideLiElements = headElements.reduce(handleHeadItem, [])
-    mdSide.innerHTML = null
-    mdSide.append(df)
+    tocList.innerHTML = null
+    tocList.append(df)
     setTimeout(onScroll, 0)
   }
 
@@ -347,11 +456,11 @@ function main(data: Data) {
       if (theme === 'auto' || prevTheme === 'auto') {
         const themeScheme = getMediaQueryTheme()
         if (theme !== themeScheme && prevTheme !== themeScheme) {
-          contentRender(mdRaw)
+          contentRender(editorDraft ?? mdRaw)
           renderSide()
         }
       } else {
-        contentRender(mdRaw)
+        contentRender(editorDraft ?? mdRaw)
         renderSide()
       }
     }
