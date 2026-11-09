@@ -1,17 +1,20 @@
 import hljs from 'highlight.js'
-import MarkdownIt from 'markdown-it'
+import MarkdownIt, {
+  type MarkdownIt as MarkdownItInstance,
+  type MarkdownItOptions,
+} from 'markdown-it'
 import mSub from 'markdown-it-sub'
 import mSup from 'markdown-it-sup'
 import mIns from 'markdown-it-ins'
 import mAbbr from 'markdown-it-abbr'
 import mMark from 'markdown-it-mark'
-import mEmoji from 'markdown-it-emoji'
+import { full as mEmoji } from 'markdown-it-emoji'
 import mDeflist from 'markdown-it-deflist'
 import mFootnote from 'markdown-it-footnote'
 import mTaskLists from 'markdown-it-task-lists'
 import mToc from 'markdown-it-table-of-contents'
 import mKatex from '@traptitech/markdown-it-katex'
-import mMermaid from '@md-reader/markdown-it-mermaid'
+import mMermaid from '@/plugins/mermaid-block'
 import mAlert from '@/plugins/alert'
 import mGraphvizBlock from '@/plugins/graphviz-block'
 import mMultimdTable from 'markdown-it-multimd-table'
@@ -20,7 +23,17 @@ import successIcon from '@/images/icon_success.svg'
 import copyIcon from '@/images/icon_copy.svg'
 import className from '@/config/class-name'
 import Ele, { svg } from './ele'
-import { escapeHtml } from 'markdown-it/lib/common/utils'
+
+/**
+ * markdown-it-multimd-table 4.2.3 (latest) calls md.utils.assign, which
+ * markdown-it 14 removed.
+ */
+function mMultimdTableCompat(md: MarkdownItInstance, options?: any) {
+  if (typeof (md.utils as any).assign !== 'function') {
+    md.utils = { ...md.utils, assign: Object.assign } as typeof md.utils
+  }
+  return mMultimdTable(md, options)
+}
 
 type Plugins = { [p: string]: ((a: MdOptions) => any[]) | any[] }
 const PLUGINS: Plugins = {
@@ -32,7 +45,7 @@ const PLUGINS: Plugins = {
   Katex: [mKatex],
   Mermaid: ({ theme }) => [
     mMermaid,
-    { theme: theme === 'dark' ? 'dark' : 'default', themeVariables: undefined },
+    { theme: theme === 'dark' ? 'dark' : 'default' },
   ],
   Mark: [mMark],
   Deflist: [mDeflist],
@@ -40,7 +53,7 @@ const PLUGINS: Plugins = {
   TaskLists: [mTaskLists],
   TOC: [mToc],
   Alert: [mAlert],
-  MultimdTable: [mMultimdTable],
+  MultimdTable: [mMultimdTableCompat],
 }
 
 /** Plugins whose options are applied by md-reader itself, not md.use() */
@@ -48,11 +61,18 @@ const SPECIAL = ['Frontmatter', 'Linkify']
 
 export interface MdOptions {
   [key: string]: any
-  config?: MarkdownIt.Options
+  config?: MarkdownItOptions
   plugins?: Array<string>
   /** user-defined options per plugin name, merged over built-in defaults */
   pluginOptions?: { [plugin: string]: Record<string, any> }
 }
+
+const escapeHtml = (str: string): string =>
+  String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 
 const isPlainObject = (v: unknown): v is Record<string, any> =>
   !!v && typeof v === 'object' && !Array.isArray(v)
@@ -97,12 +117,13 @@ function initRender({
     ...config,
   })
 
-  // linkify-it options (parse email by default)
+  // linkify-it options. linkify-it 6 turned fuzzy links off by default: keep
+  // linking bare domains (www.example.com) and emails as before.
   const linkifyOpts = isPlainObject(pluginOptions.Linkify)
     ? pluginOptions.Linkify
     : {}
   try {
-    md.linkify.set({ fuzzyEmail: true, ...linkifyOpts })
+    md.linkify.set({ fuzzyLink: true, fuzzyEmail: true, ...linkifyOpts })
   } catch (err) {
     console.error('[md-reader] invalid Linkify options:', err)
   }
@@ -185,7 +206,7 @@ export function renderFrontmatter(
 
 interface MdRender {
   (code: string, options: MdOptions): string
-  md?: MarkdownIt
+  md?: MarkdownItInstance
   options?: MdOptions
 }
 export const mdRender: MdRender = (code, options): string => {

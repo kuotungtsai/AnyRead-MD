@@ -1,7 +1,16 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import MarkdownIt from 'markdown-it'
-import MermaidPlugin from '@md-reader/markdown-it-mermaid'
+
+// Stand-in for src/plugins/mermaid-block.ts (which needs the webpack `@` alias):
+// a fence rule that claims every `mermaid` block, installed before Graphviz.
+function MermaidPlugin(md) {
+  const fallback = md.renderer.rules.fence.bind(md.renderer.rules)
+  md.renderer.rules.fence = (tokens, idx, options, env, self) =>
+    tokens[idx].info.trim() === 'mermaid'
+      ? `<pre class="mermaid">${md.utils.escapeHtml(tokens[idx].content)}</pre>`
+      : fallback(tokens, idx, options, env, self)
+}
 
 const loadGraphviz = () => import('../src/core/graphviz.ts')
 

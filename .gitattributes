@@ -1,0 +1,2 @@
+# pnpm hashes patch files and applies them byte-for-byte: keep LF everywhere
+patches/*.patch text eol=lf

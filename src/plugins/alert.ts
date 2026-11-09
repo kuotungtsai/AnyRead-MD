@@ -1,11 +1,23 @@
-import type MarkdownIt from 'markdown-it'
-import type Token from 'markdown-it/lib/token'
+import type { MarkdownIt, Token } from 'markdown-it'
 import { alert } from '@mdit/plugin-alert'
 import mContainer from 'markdown-it-container'
 
 export default function AlertPlugin(md: MarkdownIt) {
   const customContainers = [
-    [alert, { deep: true }],
+    [
+      alert,
+      {
+        deep: true,
+        // keep the "Note" / "Warning" titles of @mdit/plugin-alert < 1
+        titleRenderer(tokens: Token[], idx: number) {
+          const title = tokens[idx].content
+          return `<p class="markdown-alert-title">${md.utils.escapeHtml(
+            title.charAt(0).toUpperCase() + title.slice(1).toLowerCase(),
+          )}</p>
+`
+        },
+      },
+    ],
     [
       mContainer,
       'note',
