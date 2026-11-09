@@ -117,7 +117,7 @@ async function topMode() {
 
   whenListed(() => {
     const entries = collectEntries()
-    let showAll = false
+    let showAll = data?.dirShowAll === true
     let selected = 0
 
     const style = el('style')
@@ -151,6 +151,7 @@ async function topMode() {
     })
     const allLabel = el('label')
     const allBox = el('input', { type: 'checkbox' })
+    allBox.checked = showAll
     allLabel.append(allBox, ' ' + t('dir_show_all'))
     bar.append(filter, allLabel)
 
@@ -221,6 +222,7 @@ async function topMode() {
     })
     allBox.addEventListener('change', () => {
       showAll = allBox.checked
+      storage.set('dirShowAll', showAll)
       render()
     })
     // keyboard: ↑/↓ to move, Enter to open, typing goes to the filter

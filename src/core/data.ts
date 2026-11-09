@@ -32,6 +32,8 @@ export interface Data {
   dirView?: boolean
   /** extra file extensions opened as a highlighted code view, e.g. ['c', 'h'] */
   codeExts?: string[]
+  /** folder view: "show all files" checkbox, remembered across reloads */
+  dirShowAll?: boolean
   /** first-run tutorial has been shown */
   tourDone?: boolean
   /** set once saved plugin lists include NEW_PLUGINS decisions */
