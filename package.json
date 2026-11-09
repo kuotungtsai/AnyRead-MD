@@ -20,7 +20,8 @@
     "lint": "prettier --write --ignore-unknown",
     "preinstall": "node ./scripts/preinstall.mjs",
     "prepare": "husky install",
-    "pack:share": "webpack --config ./build/webpack.prod.js && node ./scripts/pack-share.mjs"
+    "pack:share": "webpack --config ./build/webpack.prod.js && node ./scripts/pack-share.mjs",
+    "pack:store": "webpack --config ./build/webpack.prod.js && node ./scripts/pack-store.mjs"
   },
   "devDependencies": {
     "@nuxt/friendly-errors-webpack-plugin": "^2.5.2",

@@ -57,7 +57,12 @@ npx pnpm@9 run dev
 
 # 建置並打包成要分享的 zip：dist/anyread-md-<版本>.zip
 npx pnpm@9 run pack:share
+
+# 建置並打包成上架 Chrome 商店用的 zip：dist/anyread-md-<版本>-store.zip
+npx pnpm@9 run pack:store
 ```
+
+上架商店要填的文字、權限說明和圖片都在 [store/listing.md](./store/listing.md)；隱私權政策在 [PRIVACY.md](./PRIVACY.md)。
 
 ### 版本號
 
