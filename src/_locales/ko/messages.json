@@ -1,10 +1,9 @@
 {
   "ext_name": {
-    "message": "MD Reader Pro (local)",
-    "description": "크롬을 위한 마크다운 리더 확장 프로그램."
+    "message": "AnyRead MD"
   },
   "ext_desc": {
-    "message": "크롬을 위한 마크다운 리더 확장 프로그램."
+    "message": "Chrome에서 Markdown 파일을 읽고, 폴더를 탐색하고, 편집합니다. 모든 처리는 내 컴퓨터에서만 이루어집니다."
   },
   "command_toggle_side": {
     "message": "토글 사이드바"

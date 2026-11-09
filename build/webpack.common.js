@@ -90,7 +90,7 @@ module.exports = {
     }),
     new ThirdPartyNoticesPlugin({
       header:
-        'MD Reader Pro is released under the MIT License (see LICENSE).\n' +
+        'AnyRead MD is released under the MIT License (see LICENSE).\n' +
         'It is a fork of md-reader 2.x, Copyright (c) 2018-present Bener (MIT).\n',
       // pulled in by a Less @import, which webpack does not track as a module
       packages: ['@md-reader/theme'],

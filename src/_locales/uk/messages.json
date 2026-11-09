@@ -1,11 +1,9 @@
 {
   "ext_name": {
-    "message": "MD Reader Pro (local)",
-    "description": "Розширення для читання markdown для Chrome."
+    "message": "AnyRead MD"
   },
   "ext_desc": {
-    "message": "Розширення для читання markdown для Chrome.",
-    "description": "Підтримка перегляду file://, http://, https:// посилань та файлів розширення *.md, *.mkd, *.markdown."
+    "message": "Читайте, переглядайте папки та редагуйте файли Markdown у Chrome. Усе обробляється лише на вашому комп’ютері."
   },
   "command_toggle_side": {
     "message": "Перемкнути бічну панель"

@@ -1,6 +1,6 @@
 <script>
   import Icon from './icon.svelte'
-  import logoIcon from '@/images/logo-pro.svg'
+  import logoIcon from '@/images/icon.svg'
   // open this extension's own welcome / help page (no external website)
   function openWelcome(e) {
     e.preventDefault()

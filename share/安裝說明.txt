@@ -1,4 +1,4 @@
-MD Reader Pro 安裝說明
+AnyRead MD 安裝說明
 ======================
 
 在 Chrome 裡閱讀、瀏覽、編輯 Markdown（.md）檔案。
@@ -9,7 +9,7 @@ MD Reader Pro 安裝說明
 --------------------
 
 1. 把這個 zip 解壓縮到一個「固定的位置」，例如：
-      D:\tools\md-reader-pro
+      D:\tools\anyread-md
    ※ 之後不要刪除或搬動這個資料夾，否則擴充功能會失效。
 
 2. 在 Chrome 網址列輸入：
@@ -46,7 +46,7 @@ MD Reader Pro 安裝說明
 --------------
 
 1. 把新版 zip 解壓縮，覆蓋原本的資料夾內容。
-2. 到 chrome://extensions，在 MD Reader Pro 上按「重新載入」(↻)。
+2. 到 chrome://extensions，在 AnyRead MD 上按「重新載入」(↻)。
    設定會保留，不用重設。
 
 
@@ -60,7 +60,7 @@ A: 你把資料夾拖到了 chrome://extensions（擴充功能）頁面。
    （剛安裝完時，畫面常常還停在擴充功能頁，第一次最容易拖錯地方。）
 
 Q: 打開 .md 檔還是一堆原始文字？
-A: 到 chrome://extensions → MD Reader Pro →「詳細資料」，
+A: 到 chrome://extensions → AnyRead MD →「詳細資料」，
    確認「允許存取檔案網址」有開。
 
 Q: Chrome 跳出「停用開發人員模式擴充功能」？

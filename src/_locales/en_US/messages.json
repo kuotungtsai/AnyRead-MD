@@ -1,11 +1,9 @@
 {
   "ext_name": {
-    "message": "MD Reader Pro (local)",
-    "description": "A markdown reader extension for Chrome."
+    "message": "AnyRead MD"
   },
   "ext_desc": {
-    "message": "A markdown reader extension for Chrome.",
-    "description": "Support view file://, http://, https:// URL and *.md, *.mkd, *.markdown extension files."
+    "message": "Read, browse and edit Markdown files in Chrome. Folder view, diagrams and math; everything stays on your computer."
   },
   "command_toggle_side": {
     "message": "Toggle side"

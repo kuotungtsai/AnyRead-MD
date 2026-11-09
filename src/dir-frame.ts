@@ -127,7 +127,7 @@ async function topMode() {
       el('link', {
         rel: 'icon',
         type: 'image/svg+xml',
-        href: chrome.runtime.getURL('images/logo-pro.svg'),
+        href: chrome.runtime.getURL('images/icon.svg'),
       }),
     )
     document.body.classList.add('mdr-dir')

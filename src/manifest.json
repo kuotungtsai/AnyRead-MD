@@ -7,11 +7,11 @@
   "description": "__MSG_ext_desc__",
   "default_locale": "en",
   "icons": {
-    "16": "images/logo-pro-16.png",
-    "32": "images/logo-pro-32.png",
-    "48": "images/logo-pro-48.png",
-    "128": "images/logo-pro-128.png",
-    "512": "images/logo-pro-512.png"
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png",
+    "512": "images/icon-512.png"
   },
   "web_accessible_resources": [
     {
@@ -23,12 +23,12 @@
     "service_worker": "js/background.js"
   },
   "action": {
-    "default_title": "MD Reader Pro",
+    "default_title": "AnyRead MD",
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "images/logo-pro-16.png",
-      "32": "images/logo-pro-32.png",
-      "48": "images/logo-pro-48.png"
+      "16": "images/icon-16.png",
+      "32": "images/icon-32.png",
+      "48": "images/icon-48.png"
     }
   },
   "permissions": ["activeTab", "scripting", "storage"],

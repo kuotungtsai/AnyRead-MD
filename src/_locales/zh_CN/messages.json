@@ -1,10 +1,9 @@
 {
   "ext_name": {
-    "message": "MD Reader Pro (local)",
-    "description": "一个可以使 Chrome 预览 markdown 文件的浏览器扩展。"
+    "message": "AnyRead MD"
   },
   "ext_desc": {
-    "message": "一个可以使 Chrome 预览 markdown 文件的浏览器扩展。"
+    "message": "在 Chrome 里阅读、浏览、编辑 Markdown 文件，支持文件夹浏览、图表和公式，所有内容只在你的电脑上处理。"
   },
   "command_toggle_side": {
     "message": "切换侧边栏"

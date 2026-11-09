@@ -1,6 +1,6 @@
-# MD Reader Pro
+# AnyRead MD
 
-<img alt="MD Reader Pro" src="./src/images/logo-pro.svg" align="right" width="110">
+<img alt="AnyRead MD" src="./src/images/icon.svg" align="right" width="110">
 
 在 Chrome 裡閱讀、瀏覽、編輯 Markdown 檔案的瀏覽器擴充功能。
 所有內容都只在你的電腦上處理：**沒有帳號、沒有追蹤，也不會連到任何外部伺服器。**
@@ -10,7 +10,7 @@
 
 ## 功能
 
-- **閱讀**：開啟 `file://`、`http://`、`https://` 的 `.md` / `.mkd` / `.mdx` / `.markdown` 檔，淺色 / 深色主題、程式碼高亮、圖片放大檢視。
+- **閱讀**：本機或網路上的 Markdown 檔（`.md`、`.markdown` 等）直接排版顯示；可切換深淺主題，程式碼會上色，點圖片可以放大。
 - **側邊欄「大綱 / 檔案」**：大綱可跳到標題；檔案分頁列出同資料夾的其他 Markdown 檔與子資料夾，點一下就切換。
 - **資料夾檢視**：把整個資料夾拖進 Chrome 的一般分頁（不要拖到 `chrome://extensions`，那裡會被當成安裝擴充；或開 `file:///C:/docs/` 這類網址），會看到可搜尋的 Markdown 檔列表，打字篩選、`↑` `↓` 選擇、`Enter` 開啟。
 - **編輯模式**：`Alt+Shift+E` 開啟左右分割的編輯器，右邊即時預覽；`Ctrl+S` 存檔（第一次會跳出「另存新檔」，選同一個檔案覆蓋）。
@@ -31,9 +31,9 @@
 
 ## 安裝
 
-### 用打包好的 zip（給同事）
+### 用打包好的 zip
 
-1. 把 `md-reader-pro-<版本>.zip` 解壓縮到固定位置，例如 `D:\tools\md-reader-pro`（之後不要刪除或搬動）。
+1. 把 `anyread-md-<版本>.zip` 解壓縮到固定位置，例如 `D:\tools\anyread-md`（之後不要刪除或搬動）。
 2. 到 `chrome://extensions`，打開右上角「開發人員模式」。
 3. 按「載入未封裝項目」，選解壓縮出來、裡面有 `manifest.json` 的資料夾。
 4. 安裝後會自動開啟歡迎頁，照著開啟「**允許存取檔案網址**」，本機的 `.md` 才會被渲染。
@@ -55,13 +55,13 @@ npx webpack --config ./build/webpack.prod.js
 # 開發模式（存檔自動重建）
 npx pnpm@9 run dev
 
-# 建置並打包成要分享的 zip：dist/md-reader-pro-<版本>.zip
+# 建置並打包成要分享的 zip：dist/anyread-md-<版本>.zip
 npx pnpm@9 run pack:share
 ```
 
 ### 版本號
 
-MD Reader Pro 有自己的版本號，從 1.0.0 起算，採 [語意化版本](https://semver.org/lang/zh-TW/)（主.次.修），不沿用原專案 md-reader 的 2.x 版號。
+AnyRead MD 有自己的版本號，從 1.0.0 起算，採 [語意化版本](https://semver.org/lang/zh-TW/)（主.次.修），不沿用原專案 md-reader 的 2.x 版號。
 
 - 版本號只改 `package.json` 的 `version`；`pnpm run build`（`build:manifest`）會把它寫進 `src/manifest.json` 的 `version`。
 - 參考的上游版本記在 `package.json` 的 `upstreamVersion`；`build:manifest` 會產生 `version_name`，例如 `1.0.0 (based on md-reader 2.12.12)`，在 `chrome://extensions` 看得到。合併新的上游版本時，記得一起更新 `upstreamVersion`。

@@ -1,11 +1,11 @@
 {
-  "name": "md-reader-pro",
+  "name": "anyread-md",
   "version": "1.0.0",
   "upstreamVersion": "2.12.12",
-  "author": "Bener (original md-reader), Gordon Tsai (MD Reader Pro)",
+  "author": "Bener (original md-reader), Gordon Tsai <kuotung.tsai@gmail.com> (AnyRead MD)",
   "license": "MIT",
   "private": true,
-  "description": "MD Reader Pro: read, browse and edit Markdown files locally in Chrome. Fork of md-reader 2.x (MIT).",
+  "description": "AnyRead MD: read, browse and edit Markdown files locally in Chrome. Fork of md-reader 2.x (MIT).",
   "keywords": [
     "markdown",
     "markdown reader",
