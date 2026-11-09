@@ -600,3 +600,72 @@ body.md-reader .md-reader__markdown-content details.md-reader__frontmatter {
     white-space: pre-wrap;
   }
 }
+
+// Extra file types (e.g. .c / .h) shown like VS Code: Shiki writes both
+// Light+ and Dark+ colours as CSS variables, the page theme picks one
+.md-reader__code-view {
+  .shiki {
+    margin: 0;
+    padding: 12px 0;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: Consolas, 'Courier New', ui-monospace, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    tab-size: 4;
+    white-space: pre;
+    color: var(--shiki-light);
+    background-color: var(--shiki-light-bg);
+    span {
+      color: var(--shiki-light);
+      font-style: var(--shiki-light-font-style);
+      font-weight: var(--shiki-light-font-weight);
+    }
+    code {
+      counter-reset: line;
+      display: block;
+      min-width: max-content;
+      // the page theme styles every `pre code`: let Shiki's colours show
+      margin: 0 !important;
+      padding: 0 16px 0 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      font: inherit !important;
+      color: inherit;
+    }
+    // line numbers, like VS Code's gutter
+    .line::before {
+      counter-increment: line;
+      content: counter(line);
+      display: inline-block;
+      width: 3em;
+      margin-right: 1.5em;
+      text-align: right;
+      color: #237893;
+      user-select: none;
+    }
+  }
+}
+.code-view-dark() {
+  .md-reader__code-view .shiki {
+    color: var(--shiki-dark);
+    background-color: var(--shiki-dark-bg);
+    span {
+      color: var(--shiki-dark);
+      font-style: var(--shiki-dark-font-style);
+      font-weight: var(--shiki-dark-font-weight);
+    }
+    .line::before {
+      color: #858585;
+    }
+  }
+}
+:root[data-md-reader-theme='dark'] {
+  .code-view-dark();
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-md-reader-theme='light']) {
+    .code-view-dark();
+  }
+}

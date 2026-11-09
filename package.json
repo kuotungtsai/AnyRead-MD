@@ -69,6 +69,7 @@
     "markdown-it-table-of-contents": "^1.2.0",
     "markdown-it-task-lists": "^2.1.1",
     "mermaid": "^11.17.2",
+    "shiki": "4.6.0",
     "svelte": "^5.57.3"
   },
   "lint-staged": {

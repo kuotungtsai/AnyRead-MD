@@ -17,6 +17,7 @@ import {
   urlExtension,
   viewableMatcher,
 } from '@/core/file-types'
+import { codeViewLanguage, renderCodeView } from '@/core/code-view'
 import { createEditor } from '@/core/editor'
 import { startTour, type TourStep } from '@/core/tour'
 import { safeCall, setRuntimeLanguage, onStale } from '@/core/runtime'
@@ -83,6 +84,8 @@ function main(data: Data) {
   const codeLang = sanitizeExts(configData.codeExts).includes(fileExt)
     ? codeLanguage(fileExt)
     : null
+  /* VS Code colours (Shiki) when there is a grammar for it, else highlight.js */
+  const viewLang = codeLang ? codeViewLanguage(fileExt) : null
 
   if (
     !configData.enable ||
@@ -127,14 +130,18 @@ function main(data: Data) {
     (target: HTMLElement | Ele) =>
     (code: string = '', options?: MdOptions) => {
       const mdConfig = getDefaultMdConfig(configData.mdConfig)
-      if (codeLang) code = toCodeFence(code ?? '', codeLang)
-      target.innerHTML = mdRender(code, {
-        theme: toTheme(configData.pageTheme),
-        plugins: configData.mdPlugins,
-        config: mdConfig.core,
-        pluginOptions: mdConfig.plugins,
-        ...options,
-      })
+      if (viewLang) {
+        target.innerHTML = renderCodeView(code ?? '', viewLang)
+      } else {
+        if (codeLang) code = toCodeFence(code ?? '', codeLang)
+        target.innerHTML = mdRender(code, {
+          theme: toTheme(configData.pageTheme),
+          plugins: configData.mdPlugins,
+          config: mdConfig.core,
+          pluginOptions: mdConfig.plugins,
+          ...options,
+        })
+      }
       const ele = target instanceof Ele ? target.ele : target
       document.title = codeLang
         ? fileName(location.pathname)
