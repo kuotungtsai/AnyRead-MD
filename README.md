@@ -46,17 +46,17 @@ zip 內附的 `安裝說明.txt` 有更完整的說明與常見問題。
 需要 Node.js 16 以上。
 
 ```bash
-# 安裝相依套件（本專案使用 pnpm）
-npx pnpm@8 install
+# 安裝相依套件：照 pnpm-lock.yaml 鎖定的版本安裝，不會抓新版
+npx pnpm@9 install --frozen-lockfile
 
 # 建置到 extension/ 資料夾，之後用「載入未封裝項目」選 extension/
 npx webpack --config ./build/webpack.prod.js
 
 # 開發模式（存檔自動重建）
-npx pnpm@8 run dev
+npx pnpm@9 run dev
 
 # 建置並打包成要分享的 zip：dist/md-reader-pro-<版本>.zip
-npx pnpm@8 run pack:share
+npx pnpm@9 run pack:share
 ```
 
 出新版前，記得把 `src/manifest.json` 的 `version` 往上加，才分得出是哪一版。
