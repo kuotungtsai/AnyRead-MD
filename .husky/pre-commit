@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Optional local check kept outside version control (.git/company-guard.sh).
+guard="$(git rev-parse --git-common-dir)/company-guard.sh"
+if [ -f "$guard" ]; then sh "$guard" || exit 1; fi
+
 npm x lint-staged
