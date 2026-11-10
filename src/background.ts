@@ -110,7 +110,7 @@ function syncCodeScripts(exts?: unknown) {
         ])
       }
     } catch (err) {
-      console.error('md-reader: could not register code file types', err)
+      console.error('AnyRead MD: could not register code file types', err)
     }
   })
   return codeScriptsQueue

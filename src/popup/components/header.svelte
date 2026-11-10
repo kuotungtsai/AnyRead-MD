@@ -10,7 +10,7 @@
 
 <h1>
   <Icon class="icon-logo" svg={logoIcon} />
-  <a href="options.html#welcome" on:click={openWelcome}>MD READER PRO</a>
+  <a href="options.html#welcome" on:click={openWelcome}>AnyRead MD</a>
 </h1>
 
 <style>
