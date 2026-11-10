@@ -1,6 +1,6 @@
 {
   "name": "__MSG_ext_name__",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": "Gordon Tsai (based on md-reader by Bener, MIT)",
   "manifest_version": 3,
   "description": "__MSG_ext_desc__",
@@ -30,21 +30,14 @@
       "48": "images/icon-48.png"
     }
   },
-  "permissions": ["scripting", "storage"],
-  "host_permissions": ["*://*/*", "file:///*"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["file:///*"],
+  "optional_host_permissions": ["*://*/*"],
   "content_scripts": [
     {
       "js": ["js/content.js"],
       "css": ["css/content.css"],
       "matches": [
-        "*://*/*.md",
-        "*://*/*.mdx",
-        "*://*/*.mkd",
-        "*://*/*.markdown",
-        "*://*/*.MD",
-        "*://*/*.MDX",
-        "*://*/*.MKD",
-        "*://*/*.MARKDOWN",
         "file://*/*.md",
         "file://*/*.mdx",
         "file://*/*.mkd",
@@ -53,14 +46,6 @@
         "file://*/*.MDX",
         "file://*/*.MKD",
         "file://*/*.MARKDOWN",
-        "*://*/*.md?*",
-        "*://*/*.mdx?*",
-        "*://*/*.mkd?*",
-        "*://*/*.markdown?*",
-        "*://*/*.MD?*",
-        "*://*/*.MDX?*",
-        "*://*/*.MKD?*",
-        "*://*/*.MARKDOWN?*",
         "file://*/*.md?*",
         "file://*/*.mdx?*",
         "file://*/*.mkd?*",

@@ -1,6 +1,14 @@
 import storage from '@/core/storage'
 import commands from '@/core/commands'
-import { matchPatterns, sanitizeExts } from '@/core/file-types'
+import {
+  MD_EXTS,
+  isMarkdownName,
+  matchPatterns,
+  patternsFor,
+  sanitizeExts,
+  webBases,
+} from '@/core/file-types'
+import { sameSite } from '@/core/links'
 
 chrome.runtime.onMessage.addListener(({ action, data }, sender, callback) => {
   messageHandler(action, data, sender, callback)
@@ -22,6 +30,15 @@ async function messageHandler(
     case 'fetch':
       fetchData(sender.url).then(callback)
       break
+    case 'readFile':
+      readFile(data?.url, sender.url).then(callback)
+      break
+    case 'readImage':
+      readImage(data?.url, sender.url).then(callback)
+      break
+    case 'syncScripts':
+      syncScripts().then(() => callback?.(true))
+      break
   }
 }
 
@@ -38,6 +55,56 @@ async function fetchData(url?: string) {
       console.error(err)
       return err.message
     })
+}
+
+/**
+ * Read another Markdown file for a page that is already being shown:
+ * the linked-file preview and the folder search. A local page may read local
+ * Markdown files; a web page may read Markdown files on its own site.
+ */
+async function readFile(
+  url?: string,
+  from?: string,
+): Promise<{ ok: boolean; text?: string }> {
+  try {
+    const target = new URL(url)
+    const origin = new URL(from)
+    if (!sameSite(target, origin) || !isMarkdownName(target.pathname))
+      return { ok: false }
+    const res = await fetch(target.href.split('#')[0])
+    if (!res.ok && res.status !== 0) return { ok: false }
+    return { ok: true, text: await res.text() }
+  } catch {
+    return { ok: false }
+  }
+}
+
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)$/i
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+/** Read a picture used by the page being exported, as a data: URL. */
+async function readImage(
+  url?: string,
+  from?: string,
+): Promise<{ dataUrl?: string }> {
+  try {
+    const target = new URL(url)
+    const origin = new URL(from)
+    if (!sameSite(target, origin) || !IMAGE_EXT.test(target.pathname)) return {}
+    const res = await fetch(target.href.split('#')[0])
+    if (!res.ok && res.status !== 0) return {}
+    const blob = await res.blob()
+    if (blob.size > MAX_IMAGE_BYTES) return {}
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(blob)
+    })
+    return { dataUrl }
+  } catch {
+    return {}
+  }
 }
 
 // Chrome extension shortcuts
@@ -77,49 +144,67 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
   }
 })
 
-/* user-chosen code file types (options page): the markdown types are static
-   manifest content scripts; these are registered here so they can change
-   without a manifest edit. */
+/* Content scripts that depend on what the user chose:
+   - code file types from the options page (local files, plus allowed sites)
+   - Markdown files on web sites the user allowed
+   Markdown files on file:// are static manifest content scripts. */
 const CODE_SCRIPT_ID = 'md-reader-code-files'
+const WEB_SCRIPT_ID = 'anyread-web-markdown'
 
-let codeScriptsQueue: Promise<void> = Promise.resolve()
-function syncCodeScripts(exts?: unknown) {
+async function grantedWebBases(): Promise<string[]> {
+  const all = await new Promise<chrome.permissions.Permissions>(resolve =>
+    chrome.permissions.getAll(resolve),
+  )
+  return webBases(all.origins)
+}
+
+async function replaceScript(id: string, matches: string[]) {
+  const existing = await chrome.scripting.getRegisteredContentScripts({
+    ids: [id],
+  })
+  if (existing.length) {
+    await chrome.scripting.unregisterContentScripts({ ids: [id] })
+  }
+  if (matches.length) {
+    await chrome.scripting.registerContentScripts([
+      {
+        id,
+        js: ['js/content.js'],
+        css: ['css/content.css'],
+        matches,
+        runAt: 'document_idle',
+        persistAcrossSessions: true,
+      },
+    ])
+  }
+}
+
+let scriptsQueue: Promise<void> = Promise.resolve()
+function syncScripts(exts?: unknown) {
   // serialize: a quick second change must not race the first registration
-  codeScriptsQueue = codeScriptsQueue.then(async () => {
-    if (exts === undefined) exts = (await storage.get('codeExts')).codeExts
-    const matches = matchPatterns(sanitizeExts(exts))
+  scriptsQueue = scriptsQueue.then(async () => {
     try {
-      const existing = await chrome.scripting.getRegisteredContentScripts({
-        ids: [CODE_SCRIPT_ID],
-      })
-      if (existing.length) {
-        await chrome.scripting.unregisterContentScripts({
-          ids: [CODE_SCRIPT_ID],
-        })
-      }
-      if (matches.length) {
-        await chrome.scripting.registerContentScripts([
-          {
-            id: CODE_SCRIPT_ID,
-            js: ['js/content.js'],
-            css: ['css/content.css'],
-            matches,
-            runAt: 'document_idle',
-            persistAcrossSessions: true,
-          },
-        ])
-      }
+      if (exts === undefined) exts = (await storage.get('codeExts')).codeExts
+      const bases = await grantedWebBases()
+      await replaceScript(WEB_SCRIPT_ID, patternsFor(MD_EXTS, bases))
+      await replaceScript(
+        CODE_SCRIPT_ID,
+        matchPatterns(sanitizeExts(exts), bases),
+      )
     } catch (err) {
-      console.error('AnyRead MD: could not register code file types', err)
+      console.error('AnyRead MD: could not register content scripts', err)
     }
   })
-  return codeScriptsQueue
+  return scriptsQueue
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.codeExts) {
-    syncCodeScripts(changes.codeExts.newValue ?? [])
+    syncScripts(changes.codeExts.newValue ?? [])
   }
 })
-chrome.runtime.onInstalled.addListener(() => syncCodeScripts())
-chrome.runtime.onStartup.addListener(() => syncCodeScripts())
+chrome.runtime.onInstalled.addListener(() => syncScripts())
+chrome.runtime.onStartup.addListener(() => syncScripts())
+// the user allowed or removed a web site (options page, popup, or Chrome's own UI)
+chrome.permissions.onAdded.addListener(() => syncScripts())
+chrome.permissions.onRemoved.addListener(() => syncScripts())

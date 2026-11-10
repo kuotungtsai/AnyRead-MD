@@ -9,6 +9,15 @@
     type MdCoreConfig,
   } from '@/core/data'
   import { parseExtensions, sanitizeExts } from '@/core/file-types'
+  import { getReading, READING_LIMITS, type Reading } from '@/core/data'
+  import {
+    ALL_SITES,
+    hasAllSites,
+    listSites,
+    removeSites,
+    requestSites,
+  } from '@/core/web-access'
+  import { clearRecent } from '@/core/recent'
 
   let localize = i18n()
 
@@ -54,6 +63,66 @@
     chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })
   }
 
+  /* web sites: off after install, the user turns it on here */
+  let allSites = false
+  let sites: string[] = []
+  async function refreshSites() {
+    allSites = await hasAllSites()
+    sites = await listSites()
+  }
+  refreshSites()
+  window.addEventListener('focus', refreshSites)
+  async function toggleAllSites() {
+    if (allSites) await removeSites([ALL_SITES])
+    else await requestSites([ALL_SITES])
+    await refreshSites()
+  }
+  async function removeSite(site: string) {
+    await removeSites([site])
+    await refreshSites()
+  }
+  const siteName = (site: string) => site.slice(0, -2)
+
+  /* reading layout, own CSS and small switches */
+  let reading: Reading = getReading()
+  let customCss = ''
+  let linkPreview = true
+  let recentOn = true
+  const CSS_EXAMPLE = 'h1 { color: teal !important; }'
+  const READING_FIELDS: Array<[keyof Reading, string, number]> = [
+    ['fontSize', 'opt_font_size', 1],
+    ['width', 'opt_width', 20],
+    ['lineHeight', 'opt_line_height', 0.1],
+  ]
+  function setReading(key: keyof Reading, value: string) {
+    reading = { ...reading, [key]: Number(value) || 0 }
+  }
+  async function saveReading() {
+    reading = getReading(reading)
+    await storage.set('reading', reading)
+    flash(localize('opt_saved'))
+  }
+  async function resetReading() {
+    reading = getReading()
+    await storage.set('reading', reading)
+    flash(localize('opt_saved'))
+  }
+  async function saveCss() {
+    await storage.set('customCss', customCss)
+    flash(localize('opt_saved'))
+  }
+  async function toggleLinkPreview() {
+    linkPreview = !linkPreview
+    await storage.set('linkPreview', linkPreview)
+    flash(localize('opt_saved'))
+  }
+  async function toggleRecent() {
+    recentOn = !recentOn
+    await storage.set('recentOn', recentOn)
+    if (!recentOn) await clearRecent()
+    flash(localize('opt_saved'))
+  }
+
   $: rows = [
     { kind: 'core', key: 'breaks', label: localize('opt_breaks'), desc: localize('opt_breaks_desc') },
     { kind: 'core', key: 'linkify', label: localize('opt_linkify'), desc: localize('opt_linkify_desc'), options: 'Linkify' },
@@ -76,6 +145,10 @@
     enabled = [...data.mdPlugins]
     codeExts = sanitizeExts(data.codeExts)
     codeExtsText = codeExts.join(', ')
+    reading = data.reading
+    customCss = data.customCss || ''
+    linkPreview = data.linkPreview !== false
+    recentOn = data.recentOn !== false
     texts = Object.fromEntries(
       CONFIGURABLE.map(name => {
         const opts = config.plugins[name]
@@ -171,6 +244,18 @@
         {#if !fileAccess}
           <button class="apply" on:click={openExtensionPage}
             >{localize('welcome_open_ext')}</button
+          >
+        {/if}
+      </li>
+      <li>
+        <div class="step-title">
+          {localize('welcome_web')}
+          {#if allSites}<span class="ok">✓ {localize('welcome_enabled')}</span>{/if}
+        </div>
+        <div class="desc">{localize('welcome_web_desc')}</div>
+        {#if !allSites}
+          <button class="apply" on:click={toggleAllSites}
+            >{localize('welcome_web_btn')}</button
           >
         {/if}
       </li>
@@ -280,6 +365,102 @@
   <footer>
     <button class="reset" on:click={resetAll}>{localize('opt_reset')}</button>
   </footer>
+
+  <section class="file-types">
+    <h2>{localize('opt_web')}</h2>
+    <div class="row">
+      <div class="text">
+        <div class="name">{localize('opt_web_all')}</div>
+        <div class="desc">{localize('opt_web_all_desc')}</div>
+      </div>
+      <button
+        class="switch"
+        class:on={allSites}
+        role="switch"
+        aria-checked={allSites}
+        aria-label={localize('opt_web_all')}
+        on:click={toggleAllSites}><span></span></button
+      >
+    </div>
+    {#if !allSites}
+      <div class="desc">{localize('opt_web_sites_desc')}</div>
+      {#if sites.length}
+        <ul class="sites">
+          {#each sites as site (site)}
+            <li>
+              <code>{siteName(site)}</code>
+              <button class="reset small" on:click={() => removeSite(site)}
+                >{localize('opt_web_remove')}</button
+              >
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    {/if}
+  </section>
+
+  <section class="file-types">
+    <h2>{localize('opt_reading')}</h2>
+    <div class="desc">{localize('opt_reading_desc')}</div>
+    <form class="reading" on:submit|preventDefault={saveReading}>
+      {#each READING_FIELDS as [key, label, step] (key)}
+        <label>
+          <span>{localize(label)}</span>
+          <input
+            type="number"
+            min={READING_LIMITS[key][0]}
+            max={READING_LIMITS[key][1]}
+            {step}
+            placeholder={localize('opt_default')}
+            value={reading[key] || ''}
+            on:input={e => setReading(key, e.currentTarget.value)}
+          />
+        </label>
+      {/each}
+      <button class="apply" type="submit">{localize('opt_apply')}</button>
+      <button class="reset" type="button" on:click={resetReading}
+        >{localize('opt_default')}</button
+      >
+    </form>
+
+    <div class="name sub">{localize('opt_css')}</div>
+    <div class="desc">{localize('opt_css_desc')}</div>
+    <textarea rows="6" spellcheck="false" placeholder={CSS_EXAMPLE} bind:value={customCss}
+    ></textarea>
+    <button class="apply" on:click={saveCss}>{localize('opt_apply')}</button>
+  </section>
+
+  <section class="file-types">
+    <h2>{localize('opt_more')}</h2>
+    <div class="row">
+      <div class="text">
+        <div class="name">{localize('opt_link_preview')}</div>
+        <div class="desc">{localize('opt_link_preview_desc')}</div>
+      </div>
+      <button
+        class="switch"
+        class:on={linkPreview}
+        role="switch"
+        aria-checked={linkPreview}
+        aria-label={localize('opt_link_preview')}
+        on:click={toggleLinkPreview}><span></span></button
+      >
+    </div>
+    <div class="row">
+      <div class="text">
+        <div class="name">{localize('opt_recent')}</div>
+        <div class="desc">{localize('opt_recent_desc')}</div>
+      </div>
+      <button
+        class="switch"
+        class:on={recentOn}
+        role="switch"
+        aria-checked={recentOn}
+        aria-label={localize('opt_recent')}
+        on:click={toggleRecent}><span></span></button
+      >
+    </div>
+  </section>
 </main>
 
 <style>
@@ -390,6 +571,55 @@
     font-family: Consolas, monospace;
     font-size: 12px;
     resize: vertical;
+  }
+  h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+  }
+  .name.sub {
+    margin-top: 18px;
+  }
+  .sites {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sites li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .reset.small {
+    margin-top: 0;
+    padding: 2px 10px;
+    font-size: 12px;
+  }
+  .reading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .reading label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: #586069;
+  }
+  .reading input {
+    width: 110px;
+    padding: 6px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .reading button {
+    margin-top: 0;
   }
   .file-types {
     margin-top: 16px;

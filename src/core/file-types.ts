@@ -114,15 +114,49 @@ export function toCodeFence(code: string, language: string): string {
   return `${fence}${language}\n${code.replace(/\n$/, '')}\n${fence}\n`
 }
 
-/** content_scripts match patterns for the extensions (both cases, with/without ?query) */
-export function matchPatterns(exts: string[]): string[] {
+export const FILE_BASE = 'file:///'
+const ALL_SITES = '*://*/'
+
+/**
+ * Turn the site permissions the user granted ("*://*\/*",
+ * "https://example.com/*") into pattern prefixes. Local files are covered by
+ * the manifest, so only web sites are returned.
+ */
+export function webBases(origins: string[] = []): string[] {
+  const bases: string[] = []
+  for (const origin of origins) {
+    const o = origin === '<all_urls>' ? ALL_SITES + '*' : origin
+    if (!/^(\*|https?):\/\//.test(o) || !o.endsWith('/*')) continue
+    const base = o.slice(0, -1)
+    if (!bases.includes(base)) bases.push(base)
+  }
+  return bases.includes(ALL_SITES) ? [ALL_SITES] : bases
+}
+
+/** content_scripts match patterns (both cases, with/without ?query) */
+export function patternsFor(exts: string[], bases: string[]): string[] {
   const patterns: string[] = []
-  for (const ext of sanitizeExts(exts)) {
+  for (const ext of exts) {
     for (const e of new Set([ext, ext.toUpperCase()])) {
-      for (const scheme of ['*://*/', 'file:///']) {
-        patterns.push(`${scheme}*.${e}`, `${scheme}*.${e}?*`)
+      for (const base of bases) {
+        patterns.push(`${base}*.${e}`, `${base}*.${e}?*`)
       }
     }
   }
   return patterns
+}
+
+/** patterns for the user's code file types: local files + allowed sites */
+export function matchPatterns(exts: string[], bases: string[] = []): string[] {
+  return patternsFor(sanitizeExts(exts), [FILE_BASE, ...bases])
+}
+
+/** the site pattern to ask for when the user allows one web page */
+export function originPattern(url: string): string | null {
+  try {
+    const u = new URL(url)
+    return /^https?:$/.test(u.protocol) ? `${u.protocol}//${u.host}/*` : null
+  } catch {
+    return null
+  }
 }

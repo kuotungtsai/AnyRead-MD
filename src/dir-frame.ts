@@ -11,6 +11,8 @@
 import storage from '@/core/storage'
 import i18n from '@/config/i18n'
 import { isMarkdownName, viewableMatcher } from '@/core/file-types'
+import { listDir } from '@/core/files'
+import { findMatches, type Match } from '@/core/search'
 
 export interface DirEntry {
   name: string
@@ -84,6 +86,13 @@ body.mdr-dir > :not(.mdr-view){display:none !important}
 .mdr-meta.size{width:80px;text-align:right}.mdr-meta.date{width:170px;text-align:right}
 .mdr-empty{padding:16px;color:var(--sub);font-size:14px}
 .mdr-hint{margin-top:10px;font-size:12px;color:var(--sub)}
+.mdr-results{margin-top:14px}
+.mdr-results h2{margin:0 0 8px;font-size:14px;color:var(--sub);font-weight:600}
+.mdr-hit{display:block;padding:8px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;color:inherit;text-decoration:none}
+.mdr-hit:hover{background:var(--hover)}
+.mdr-hit b{color:var(--primary);font-size:13px}
+.mdr-hit span{display:block;margin-top:2px;font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdr-hit mark{background:#ffe58a;color:#2d3d50;border-radius:2px}
 @media (max-width:640px){.mdr-meta.date{display:none}}
 `
 
@@ -155,6 +164,118 @@ async function topMode() {
     allLabel.append(allBox, ' ' + t('dir_show_all'))
     bar.append(filter, allLabel)
 
+    const inText = el('label')
+    const inTextBox = el('input', { type: 'checkbox' })
+    inText.append(inTextBox, ' ' + t('dir_search_text'))
+    bar.append(inText)
+    const results = el('div', { class: 'mdr-results' })
+
+    /* ----- search inside the Markdown files of this folder ----- */
+    const MAX_FILES = 300
+    const MAX_DEPTH = 3
+    let files: Promise<DirEntry[]> = null
+    const texts = new Map<string, Promise<string | null>>()
+    let searchRun = 0
+
+    /** Markdown files here and in sub-folders (a few levels, capped) */
+    function allFiles(): Promise<DirEntry[]> {
+      if (files) return files
+      files = (async () => {
+        const found: DirEntry[] = []
+        const walk = async (items: DirEntry[], depth: number) => {
+          for (const e of items) {
+            if (found.length >= MAX_FILES) return
+            if (e.name.startsWith('.')) continue
+            if (!e.isDir) {
+              if (isMarkdownName(e.name)) found.push(e)
+            } else if (depth < MAX_DEPTH && e.name !== 'node_modules') {
+              try {
+                await walk(await listDir(e.url), depth + 1)
+              } catch {
+                // unreadable folder: skip it
+              }
+            }
+          }
+        }
+        await walk(entries, 0)
+        return found
+      })()
+      return files
+    }
+
+    function readText(url: string): Promise<string | null> {
+      if (!texts.has(url)) {
+        texts.set(
+          url,
+          new Promise(resolve =>
+            chrome.runtime.sendMessage(
+              { action: 'readFile', data: { url } },
+              res => {
+                void chrome.runtime.lastError
+                resolve(res?.ok ? res.text ?? '' : null)
+              },
+            ),
+          ),
+        )
+      }
+      return texts.get(url)
+    }
+
+    const relPath = (url: string) =>
+      decode(url.slice(location.href.split('#')[0].length))
+
+    function hitRow(e: DirEntry, m: Match, q: string) {
+      const a = el('a', {
+        class: 'mdr-hit',
+        href: e.url,
+        title: relPath(e.url),
+      })
+      a.append(el('b', {}, `${relPath(e.url)} : ${m.line}`))
+      const line = el('span')
+      const i = m.text.toLowerCase().indexOf(q.toLowerCase())
+      if (i < 0) line.textContent = m.text
+      else {
+        line.append(
+          m.text.slice(0, i),
+          el('mark', {}, m.text.slice(i, i + q.length)),
+          m.text.slice(i + q.length),
+        )
+      }
+      a.append(line)
+      return a
+    }
+
+    async function searchText() {
+      const run = ++searchRun
+      const q = filter.value.trim()
+      results.textContent = ''
+      if (!inTextBox.checked || q.length < 2) return
+      const head = el('h2', {}, t('dir_searching'))
+      results.append(head)
+      const list = await allFiles()
+      let total = 0
+      for (const e of list) {
+        if (run !== searchRun) return
+        const text = await readText(e.url)
+        if (run !== searchRun) return
+        if (!text) continue
+        for (const m of findMatches(text, q, 3)) {
+          if (total >= 200) break
+          total++
+          results.append(hitRow(e, m, q))
+        }
+      }
+      head.textContent = total
+        ? `${t('dir_search_found')}: ${total}`
+        : t('dir_search_none')
+    }
+    let searchTimer: number = null
+    const queueSearch = () => {
+      clearTimeout(searchTimer)
+      searchTimer = window.setTimeout(searchText, 250)
+    }
+    inTextBox.addEventListener('change', queueSearch)
+
     const list = el('ul', { class: 'mdr-list' })
     const hint = el('div', { class: 'mdr-hint' }, t('dir_hint'))
 
@@ -219,6 +340,7 @@ async function topMode() {
     filter.addEventListener('input', () => {
       selected = 0
       render()
+      queueSearch()
     })
     allBox.addEventListener('change', () => {
       showAll = allBox.checked
@@ -247,7 +369,7 @@ async function topMode() {
       }
     })
 
-    view.append(crumbs, title, bar, list, hint)
+    view.append(crumbs, title, bar, list, hint, results)
     document.body.append(view)
     document.title = decode(parts[parts.length - 1] || '/')
     render()
