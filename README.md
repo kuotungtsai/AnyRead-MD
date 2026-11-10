@@ -69,7 +69,7 @@ npx pnpm@9 run pack:store
 AnyRead MD 有自己的版本號，從 1.0.0 起算，採 [語意化版本](https://semver.org/lang/zh-TW/)（主.次.修），不沿用原專案 md-reader 的 2.x 版號。
 
 - 版本號只改 `package.json` 的 `version`；`pnpm run build`（`build:manifest`）會把它寫進 `src/manifest.json` 的 `version`。
-- 參考的上游版本記在 `package.json` 的 `upstreamVersion`；`build:manifest` 會產生 `version_name`，例如 `1.0.0 (based on md-reader 2.12.12)`，在 `chrome://extensions` 看得到。合併新的上游版本時，記得一起更新 `upstreamVersion`。
+- 擴充裡顯示的版本就是單純的 `version`（例如 `1.0.1`）。參考的上游版本記在 `package.json` 的 `upstreamVersion`，只做紀錄，合併新的上游版本時記得一起更新。來源標示放在 `LICENSE`、`THIRD_PARTY_NOTICES.txt`、manifest 的 `author` 和 README。
 - 對照：1.0.0 = md-reader 2.12.12 + 資料夾樹、編輯模式、插件設定、資料夾檢視，以及相依套件升級（mermaid 11、markdown-it 15、KaTeX 0.18、Svelte 5）。在這之前的 2.13.0 就是同一份程式，只是改了版號。
 
 出新版前，記得把 `package.json` 的 `version` 往上加，才分得出是哪一版。`pack:share` 不會跑 `build:manifest`，所以要先跑一次 `pnpm run build`（或 `pnpm run build:manifest`），zip 檔名才會是新版號。
