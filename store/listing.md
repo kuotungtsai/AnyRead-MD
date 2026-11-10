@@ -7,8 +7,8 @@
 
 ## 1. Package（套件）
 
-上傳 `dist/anyread-md-1.0.0-store.zip`。這個 zip 的根目錄就是 `manifest.json`，
-不要上傳給人手動安裝用的 `anyread-md-1.0.0.zip`（那份多包了一層資料夾）。
+上傳 `dist/anyread-md-<版本>-store.zip`。這個 zip 的根目錄就是 `manifest.json`，
+不要上傳給人手動安裝用的 `anyread-md-<版本>.zip`（那份多包了一層資料夾）。
 
 ---
 
@@ -34,19 +34,25 @@ Read, browse and edit Markdown files in Chrome. Folder view, diagrams and math; 
 AnyRead MD turns Markdown files into clean, readable pages right in Chrome, and lets you browse and edit them without leaving the browser. It is free, needs no account and never sends your files anywhere.
 
 READ
-• Open local .md / .markdown files (file://) or Markdown files on any website
+• Open local .md / .markdown files (file://)
+• Optional: also show Markdown files on web sites you allow (one site or all sites)
 • Light and dark themes, syntax-highlighted code, click-to-zoom images
 • Outline side bar to jump between headings
 • Auto refresh: the page updates when you save the file in your editor
+• Links to other Markdown files open in a pane on the right, next to what you are reading
+• Font size, text width, line height and your own CSS
+• Export to PDF (print) or to a single HTML file
 
 BROWSE A WHOLE FOLDER
 • Drag a folder into a normal tab to get a searchable list of its Markdown files
 • Type to filter, ↑ ↓ to select, Enter to open
+• Search inside the files of the folder
 • "Files" tab in the side bar to switch between documents in the same folder
 
 EDIT
 • Alt+Shift+E opens a split editor with live preview
 • Ctrl+S saves back to the file you choose
+• Formatting buttons and shortcuts; paste a picture to save it next to the document
 
 RICH MARKDOWN
 • Mermaid diagrams (flowchart, sequence, class, state, Gantt and more)
@@ -58,6 +64,7 @@ PRIVATE BY DESIGN
 • No account, no ads, no analytics, no tracking
 • No servers: everything is rendered inside your browser
 • Settings are stored only on your device
+• No access to web sites after install; you turn it on yourself if you want it
 
 SETUP
 To open local files, go to the extension's Details page and turn on "Allow access to file URLs". The welcome page after install walks you through it.
@@ -89,19 +96,25 @@ Open source, based on md-reader 2.x (MIT License). Source code: https://github.c
 AnyRead MD 讓 Markdown 檔案在 Chrome 裡直接變成乾淨好讀的頁面，還能瀏覽整個資料夾、直接編輯。完全免費、不需要帳號，檔案也不會傳到任何地方。
 
 閱讀
-• 開啟本機的 .md / .markdown 檔（file://），或任何網站上的 Markdown 檔
+• 開啟本機的 .md / .markdown 檔（file://）
+• 選用：你允許的網站上的 Markdown 檔也能顯示（單一網站或所有網站）
 • 淺色 / 深色主題、程式碼上色、點圖片可放大
 • 側邊欄大綱，點標題就跳過去
 • 自動刷新：在編輯器存檔後，頁面自動更新
+• 連到其他 Markdown 檔的連結會在右半邊開啟，原本的文件留在左邊
+• 可調整字體大小、內容寬度、行距，也能加自己的 CSS
+• 匯出成 PDF（列印）或單一 HTML 檔
 
 瀏覽整個資料夾
 • 把資料夾拖進一般分頁，就會列出裡面所有 Markdown 檔，可直接打字搜尋
 • 打字篩選、↑ ↓ 選擇、Enter 開啟
+• 可搜尋資料夾裡所有檔案的內容
 • 側邊欄「檔案」分頁，切換同資料夾的其他文件
 
 編輯
 • Alt+Shift+E 開啟左右分割編輯器，右邊即時預覽
 • Ctrl+S 存回你選擇的檔案
+• 格式工具列與快捷鍵；貼上圖片會存在文件旁邊
 
 豐富的 Markdown
 • Mermaid 圖表（流程圖、循序圖、類別圖、狀態圖、甘特圖等）
@@ -113,6 +126,7 @@ AnyRead MD 讓 Markdown 檔案在 Chrome 裡直接變成乾淨好讀的頁面，
 • 沒有帳號、沒有廣告、沒有分析、不追蹤
 • 不連任何伺服器，全部在瀏覽器裡處理
 • 設定只存在你的裝置上
+• 安裝後沒有任何網站的存取權，需要時由你自己開啟
 
 使用前設定
 要開啟本機檔案，請到擴充功能的「詳細資料」開啟「允許存取檔案網址」。安裝後的歡迎頁會一步步帶你設定。
@@ -144,10 +158,22 @@ Display Markdown files as formatted pages in the browser, and let the user brows
   Registers the content script for extra file extensions the user adds in Settings (for example .c or .py) so those files are shown as highlighted code. Uses chrome.scripting.registerContentScripts only for the extensions the user chose.
   ```
 
-- Host permission（`*://*/*`、`file:///*`）
+- `activeTab`
 
   ```
-  Needed to detect and render Markdown files the user opens on any website or from local files, to read the browser's own file:// folder listing for the folder view, and to re-read the open file for auto refresh. The extension only acts on Markdown files, folders, and file types the user enables; it does not read or change other pages.
+  When the user clicks the toolbar icon, the popup reads the address of the current tab to see whether it is a Markdown file on a site that is not allowed yet, and then offers a button to turn the extension on for that site.
+  ```
+
+- Host permission（`file:///*`）
+
+  ```
+  Needed to detect and render local Markdown files the user opens, to read the browser's own file:// folder listing for the folder view and search, to read a linked Markdown file or a picture next to the document (preview and export), and to re-read the open file for auto refresh. The user must also turn on "Allow access to file URLs".
+  ```
+
+- Optional host permission（`*://*/*`，1.1.0 起改成選用）
+
+  ```
+  Off after install. The user can grant it for one site (popup) or for all sites (settings) to render Markdown files opened on web sites. Without it the extension does not run on any web page.
   ```
 
 **Are you using remote code?**：`No, I am not using remote code`
@@ -182,7 +208,7 @@ https://github.com/kuotungtsai/AnyRead-MD/blob/main/PRIVACY.md
 
 ## 5. 審核注意事項
 
-- 因為要求「所有網站」的存取權，審核可能需要幾天到一週以上。
+- 1.0.x 因為要求「所有網站」的存取權，審核可能需要幾天到一週以上；1.1.0 起這項改成選用權限，安裝時不再要求。
 - 審核期間不要一直重新提交；被退件時，信裡會寫原因，照著改再送即可。
 - 之後更新：改 `package.json` 版本 → `npx pnpm@9 run pack:store` → 在後台 Package 頁上傳新 zip。
   版本號一定要比上一次大。

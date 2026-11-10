@@ -39,4 +39,12 @@ export default {
   EDITOR_BAR: p`editor-bar`,
   EDITOR_STATUS: p`editor-status`,
   EDITOR_TEXTAREA: p`editor-textarea`,
+  EDITOR_TOOLS: p`editor-tools`,
+  EXPORT_BTN: p`btn--export`,
+  EXPORT_MENU: p`export-menu`,
+  TOAST: p`toast`,
+  PREVIEW: p`preview`,
+  PREVIEW_BAR: p`preview-bar`,
+  PREVIEW_TITLE: p`preview-title`,
+  PREVIEWING: 'md-reader-previewing',
 }

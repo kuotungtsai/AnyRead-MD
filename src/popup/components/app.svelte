@@ -6,6 +6,14 @@
   import PAGE_THEMES from '@/config/page-themes'
   import { getDefaultData, type Data } from '@/core/data'
   import i18n from '@/config/i18n'
+  import {
+    MD_EXTS,
+    originPattern,
+    sanitizeExts,
+    urlExtension,
+  } from '@/core/file-types'
+  import { hasSite, requestSites } from '@/core/web-access'
+  import { getRecent, clearRecent, type RecentFile } from '@/core/recent'
 
   let localize = i18n()
   let isAllowViewFile = true
@@ -19,7 +27,45 @@
   storage.get().then((_data: Data) => {
     // need an assignment to updata UI
     data = getDefaultData(_data)
+    recent = getRecent(_data).slice(0, 6)
+    checkSite()
   })
+
+  /* recently opened files (kept on this device only) */
+  let recent: RecentFile[] = []
+  function openRecent(url: string) {
+    chrome.tabs.create({ url })
+    window.close()
+  }
+  async function forgetRecent() {
+    await clearRecent()
+    recent = []
+  }
+
+  /* The current tab is a Markdown file on a web site that is not allowed
+     yet: offer to turn AnyRead MD on for that site. */
+  let sitePattern: string = null
+  let siteTabId: number = null
+  function checkSite() {
+    chrome.tabs.query({ active: true, currentWindow: true }, async tabs => {
+      const tab = tabs[0]
+      const pattern = tab?.url ? originPattern(tab.url) : null
+      if (!pattern) return
+      const viewable = [...MD_EXTS, ...sanitizeExts(data.codeExts)]
+      if (!viewable.includes(urlExtension(tab.url))) return
+      if (await hasSite(pattern)) return
+      sitePattern = pattern
+      siteTabId = tab.id
+    })
+  }
+  async function allowSite() {
+    if (!(await requestSites([sitePattern]))) return
+    chrome.runtime.sendMessage({ action: 'syncScripts' }, () => {
+      void chrome.runtime.lastError
+      chrome.tabs.reload(siteTabId)
+      window.close()
+    })
+  }
 
   $: if (data.language) {
     updateConfig('language', data.language)
@@ -103,6 +149,13 @@
     <Warning {localize} />
   {/if}
 
+  {#if sitePattern}
+    <div class="site">
+      <p>{localize('site_allow_desc')}</p>
+      <button on:click={allowSite}>{localize('site_allow_btn')}</button>
+    </div>
+  {/if}
+
   <div class="form" disabled={!data.enable}>
     {#each SWITCHES as [key, label] (key)}
       <div class="form-item inline">
@@ -172,6 +225,26 @@
         {/each}
       </select>
     </div>
+
+    {#if recent.length}
+      <div class="form-item">
+        <div class="label-item plugins-label">
+          <span>{localize('recent_title')}:</span>
+          <span class="all-btns">
+            <button on:click={forgetRecent}>{localize('recent_clear')}</button>
+          </span>
+        </div>
+        <ul class="recent">
+          {#each recent as item (item.url)}
+            <li>
+              <button title={item.path} on:click={() => openRecent(item.url)}
+                >{item.title}</button
+              >
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
 
     <div class="form-item">
       <button class="advanced" on:click={openOptions}>
@@ -342,6 +415,51 @@
   .select:focus {
     outline: 2px solid #607cd2;
     outline-offset: -1px;
+  }
+  .site {
+    margin: -6px 0 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #243158;
+    background: #eef2ff;
+  }
+  .site p {
+    margin: 0 0 8px;
+  }
+  .site button {
+    width: 100%;
+    padding: 6px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    color: #fff;
+    background: #607cd2;
+    cursor: pointer;
+  }
+  .recent {
+    margin: 6px 0 10px;
+    padding: 0;
+    list-style: none;
+  }
+  .recent button {
+    display: block;
+    width: 100%;
+    padding: 4px 6px;
+    overflow: hidden;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #243158;
+    background: none;
+    cursor: pointer;
+  }
+  .recent button:hover {
+    color: #607cd2;
+    background: rgba(96, 124, 210, 0.1);
   }
   .label-item {
     font-weight: bolder;

@@ -1,0 +1,20 @@
+{
+  "ext_name": {
+    "message": "AnyRead MD"
+  },
+  "ext_desc": {
+    "message": "Chrome で Markdown ファイルを読む・フォルダを見る・編集する。図や数式にも対応。すべてお使いのパソコン内で処理します。"
+  },
+  "command_toggle_side": {
+    "message": "サイドバーの表示切り替え"
+  },
+  "command_toggle_centered": {
+    "message": "中央寄せの切り替え"
+  },
+  "command_toggle_refresh": {
+    "message": "自動更新の切り替え"
+  },
+  "command_toggle_theme": {
+    "message": "テーマの切り替え"
+  }
+}

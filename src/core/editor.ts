@@ -10,6 +10,11 @@ export interface EditorLabels {
   unsaved: string
   saveFailed: string
   firstSaveHint: string
+  /** shown while the "save picture" dialog is open */
+  imageHint: string
+  imageUnsupported: string
+  /** tooltips of the formatting buttons, by tool id */
+  tools: Record<string, string>
 }
 
 export interface EditorOptions {
@@ -71,10 +76,141 @@ export function createEditor(opts: EditorOptions) {
     className: className.EDITOR_TEXTAREA,
     spellcheck: 'false',
   })
-  panel.append([bar, textarea])
+  const tools = new Ele<HTMLElement>('div', {
+    className: className.EDITOR_TOOLS,
+  })
+  panel.append([bar, tools, textarea])
   panel.hide()
 
   const ta = textarea.ele
+
+  /* ---------- formatting helpers ---------- */
+  /** replace a range and keep the browser's undo history (Ctrl+Z) */
+  function replaceRange(start: number, end: number, text: string) {
+    ta.focus()
+    ta.setSelectionRange(start, end)
+    if (!document.execCommand('insertText', false, text)) {
+      ta.setRangeText(text, start, end, 'end')
+      ta.dispatchEvent(new Event('input'))
+    }
+  }
+
+  /** put markers around the selection: **bold**, `code`, [text](url) */
+  function wrap(before: string, after: string, placeholder: string) {
+    const { selectionStart: s, selectionEnd: e, value } = ta
+    const selected = value.slice(s, e) || placeholder
+    replaceRange(s, e, before + selected + after)
+    ta.setSelectionRange(s + before.length, s + before.length + selected.length)
+  }
+
+  /** add (or remove) a prefix on every selected line: "- ", "> ", "## " */
+  function prefixLines(prefix: string) {
+    const { selectionStart: s, selectionEnd: e, value } = ta
+    const start = value.lastIndexOf('\n', s - 1) + 1
+    let end = value.indexOf('\n', e)
+    if (end === -1) end = value.length
+    const lines = value.slice(start, end).split('\n')
+    const allHave = lines.every(l => l.startsWith(prefix))
+    const next = lines
+      .map(l => (allHave ? l.slice(prefix.length) : prefix + l))
+      .join('\n')
+    replaceRange(start, end, next)
+    ta.setSelectionRange(start, start + next.length)
+  }
+
+  /** insert a block on its own lines */
+  function insertBlock(text: string) {
+    const { selectionStart: s, value } = ta
+    const lead = s > 0 && value[s - 1] !== '\n' ? '\n\n' : ''
+    replaceRange(s, ta.selectionEnd, lead + text)
+  }
+
+  function codeTool() {
+    const selected = ta.value.slice(ta.selectionStart, ta.selectionEnd)
+    if (selected.includes('\n')) wrap('```\n', '\n```', '')
+    else wrap('`', '`', 'code')
+  }
+
+  const TABLE = '| A | B |\n| --- | --- |\n|  |  |\n'
+  const TOOLS: Array<
+    [id: string, text: string, run: () => void, key?: string]
+  > = [
+    ['bold', 'B', () => wrap('**', '**', 'bold'), 'b'],
+    ['italic', 'I', () => wrap('*', '*', 'italic'), 'i'],
+    ['heading', 'H', () => prefixLines('## ')],
+    ['link', '🔗', () => wrap('[', '](https://)', 'text'), 'k'],
+    ['code', '</>', codeTool],
+    ['list', '•', () => prefixLines('- ')],
+    ['numbered', '1.', () => prefixLines('1. ')],
+    ['task', '☑', () => prefixLines('- [ ] ')],
+    ['quote', '❝', () => prefixLines('> ')],
+    ['table', '▦', () => insertBlock(TABLE)],
+  ]
+  const shortcuts: Record<string, () => void> = {}
+  TOOLS.forEach(([id, text, run, key]) => {
+    const btn = new Ele<HTMLElement>('button', {
+      title:
+        (labels.tools[id] || id) + (key ? ` (Ctrl+${key.toUpperCase()})` : ''),
+    })
+    btn.textContent = text
+    btn.classList.add(`tool-${id}`)
+    // keep the selection in the textarea when the button is pressed
+    btn.on('mousedown', (e: Event) => e.preventDefault())
+    btn.on('click', run)
+    tools.append(btn)
+    if (key) shortcuts[key] = run
+  })
+
+  /* ---------- paste a picture ---------- */
+  const two = (n: number) => String(n).padStart(2, '0')
+  function imageName(type: string) {
+    const d = new Date()
+    const ext =
+      { 'image/jpeg': 'jpg', 'image/svg+xml': 'svg' }[type] ||
+      type.split('/')[1] ||
+      'png'
+    const stamp =
+      `${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}-` +
+      `${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}`
+    return { name: `image-${stamp}.${ext}`, ext }
+  }
+
+  ta.addEventListener('paste', async (e: ClipboardEvent) => {
+    const item = Array.from(e.clipboardData?.items || []).find(
+      i => i.kind === 'file' && i.type.startsWith('image/'),
+    )
+    const file = item?.getAsFile()
+    if (!file) return
+    e.preventDefault()
+    const picker = (window as any).showSaveFilePicker
+    if (typeof picker !== 'function') {
+      setStatus(labels.imageUnsupported, true)
+      return
+    }
+    const { name, ext } = imageName(file.type)
+    const at = ta.selectionStart
+    try {
+      setStatus(labels.imageHint)
+      const handle: FileHandle = await picker({
+        suggestedName: name,
+        // open the dialog in the document's folder when we know it
+        ...(fileHandle ? { startIn: fileHandle } : {}),
+        types: [{ description: 'Image', accept: { [file.type]: [`.${ext}`] } }],
+      })
+      const writable = await handle.createWritable()
+      await writable.write(file)
+      await writable.close()
+      replaceRange(at, at, `![](${encodeURI(handle.name)})`)
+      setStatus(`${labels.saved} → ${handle.name}`)
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        setStatus(dirty ? labels.unsaved : '')
+        return
+      }
+      console.error(err)
+      setStatus(`${labels.saveFailed}: ${err?.message || err}`, true)
+    }
+  })
 
   const setStatus = (text: string, isError = false) => {
     status.textContent = text
@@ -182,6 +318,16 @@ export function createEditor(opts: EditorOptions) {
         e.preventDefault()
         e.stopPropagation()
         save(e.shiftKey)
+      } else if (
+        mod &&
+        !e.shiftKey &&
+        !e.altKey &&
+        document.activeElement === ta &&
+        shortcuts[e.key.toLowerCase()]
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        shortcuts[e.key.toLowerCase()]()
       } else if (e.key === 'Escape' && document.activeElement === ta) {
         // leave textarea focus first; a second Esc closes is too surprising
         ta.blur()

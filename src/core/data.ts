@@ -1,6 +1,9 @@
 import MD_PLUGINS, { NEW_PLUGINS } from '@/config/md-plugins'
 import PAGE_THEMES from '@/config/page-themes'
 import i18n from '@/config/i18n'
+import { getReading, type Reading } from './reading-config'
+
+export { getReading, READING_LIMITS, type Reading } from './reading-config'
 
 /** markdown-it core options the user may override */
 export interface MdCoreConfig {
@@ -38,6 +41,20 @@ export interface Data {
   tourDone?: boolean
   /** set once saved plugin lists include NEW_PLUGINS decisions */
   pluginsMigrated?: boolean
+  /** reading layout; 0 keeps the theme's own value */
+  reading?: Reading
+  /** the user's own CSS, added after the theme */
+  customCss?: string
+  /** open links to other Markdown files in a preview pane on the right */
+  linkPreview?: boolean
+  /** keep the list of recently opened files for the popup */
+  recentOn?: boolean
+  recentFiles?: Array<{
+    url: string
+    title: string
+    path: string
+    time: number
+  }>
 }
 
 export function getDefaultMdConfig(merge: Partial<MdConfig> = {}): MdConfig {
@@ -71,7 +88,11 @@ export function getDefaultData(mergeData: Data = {}): Data {
     dirView: true,
     codeExts: [],
     tourDone: false,
+    customCss: '',
+    linkPreview: true,
+    recentOn: true,
     ...mergeData,
+    reading: getReading(mergeData.reading),
     ...(mdPlugins && { mdPlugins }),
     mdConfig: getDefaultMdConfig(mergeData.mdConfig),
   }

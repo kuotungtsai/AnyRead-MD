@@ -35,6 +35,13 @@ import codeIcon from '@/images/icon_code.svg'
 import sideIcon from '@/images/icon_side.svg'
 import goTopIcon from '@/images/icon_go_top.svg'
 import editIcon from '@/images/icon_edit.svg'
+import exportIcon from '@/images/icon_export.svg'
+import { createLinkPreview } from '@/core/preview'
+import { previewTarget } from '@/core/links'
+import { exportHtml, printPage } from '@/core/export'
+import { applyCustomCss, applyReading } from '@/core/reading'
+import { rememberPage } from '@/core/recent'
+import { writeText } from '@/shared'
 import '@/style/index.less'
 
 function main(data: Data) {
@@ -158,25 +165,102 @@ function main(data: Data) {
 
   /* advanced markdown config changed in the options page */
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || (!changes.mdConfig && !changes.mdPlugins)) return
+    if (area !== 'local') return
+    if (changes.reading) {
+      configData.reading = getDefaultData({
+        reading: changes.reading.newValue,
+      }).reading
+      applyReading(mdContent.ele, configData.reading)
+    }
+    if (changes.customCss) {
+      configData.customCss = changes.customCss.newValue || ''
+      applyCustomCss(configData.customCss)
+    }
+    if (changes.linkPreview) {
+      configData.linkPreview = changes.linkPreview.newValue !== false
+      if (!configData.linkPreview) preview.close()
+    }
+    if (!changes.mdConfig && !changes.mdPlugins) return
     if (changes.mdConfig) configData.mdConfig = changes.mdConfig.newValue
     if (changes.mdPlugins) configData.mdPlugins = changes.mdPlugins.newValue
     reloading = true
     // keep an unsaved draft in the preview if there is one
     contentRender(editorDraft ?? mdRaw)
     renderSide()
+    preview.refresh()
     reloading = false
   })
   /* unsaved editor content, null when nothing pending */
   let editorDraft: string = null
 
+  applyReading(mdContent.ele, configData.reading)
+  applyCustomCss(configData.customCss)
+
+  /* a link to another Markdown file opens in a pane on the right */
+  const preview = createLinkPreview({
+    labels: {
+      open: localize('preview_open'),
+      close: localize('editor_close'),
+      back: localize('preview_back'),
+      loading: localize('preview_loading'),
+      error: localize('preview_error'),
+    },
+    render(target, source) {
+      const mdConfig = getDefaultMdConfig(configData.mdConfig)
+      target.innerHTML = mdRender(source, {
+        theme: toTheme(configData.pageTheme),
+        plugins: configData.mdPlugins,
+        config: mdConfig.core,
+        pluginOptions: mdConfig.plugins,
+      })
+      applyReading(target, configData.reading)
+      globalEvent.emit('contentRendered', target)
+    },
+    onClick: target => globalEvent.emit('click', target),
+  })
+
   mdContent.on(
     'click',
-    async e => {
+    async (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      /* "#" next to a heading: copy the address of that section */
+      if (target.classList?.contains(className.HEAD_ANCHOR)) {
+        const url = location.href.split('#')[0] + target.getAttribute('href')
+        writeText(url).then(() => toast(localize('link_copied')))
+      }
+      const link = target.closest?.('a[href]')
+      if (
+        link &&
+        configData.linkPreview &&
+        !codeLang &&
+        !editor?.isEditing &&
+        e.button === 0 &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.shiftKey &&
+        !e.altKey
+      ) {
+        const url = previewTarget(link.getAttribute('href'), location.href)
+        if (url) {
+          e.preventDefault()
+          preview.open(url)
+          return
+        }
+      }
       globalEvent.emit('click', e.target)
     },
     true,
   )
+
+  let toastTimer: number = null
+  const toastEle = new Ele<HTMLElement>('div', { className: className.TOAST })
+  toastEle.hide()
+  function toast(text: string) {
+    toastEle.textContent = text
+    toastEle.show()
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => toastEle.hide(), 1600)
+  }
 
   const mdBody = new Ele<HTMLElement>(
     'main',
@@ -258,6 +342,7 @@ function main(data: Data) {
   )
   rawToggleBtn.on('click', () => {
     editor.close()
+    preview.close()
     lifecycle.toggleRaw([mdBody, mdSide])
   })
 
@@ -271,6 +356,22 @@ function main(data: Data) {
       unsaved: localize('editor_unsaved'),
       saveFailed: localize('editor_save_failed'),
       firstSaveHint: localize('editor_first_save_hint'),
+      imageHint: localize('editor_image_hint'),
+      imageUnsupported: localize('editor_image_unsupported'),
+      tools: Object.fromEntries(
+        [
+          'bold',
+          'italic',
+          'heading',
+          'link',
+          'code',
+          'list',
+          'numbered',
+          'task',
+          'quote',
+          'table',
+        ].map(id => [id, localize(`tool_${id}`)]),
+      ),
     },
     getContent: () => editorDraft ?? mdRaw,
     onInput(content) {
@@ -292,10 +393,54 @@ function main(data: Data) {
     },
     svg(editIcon),
   )
-  editToggleBtn.on('click', () => editor.toggle())
+  editToggleBtn.on('click', () => {
+    preview.close()
+    editor.toggle()
+  })
+
+  /* export: PDF through the print dialog, or one HTML file */
+  const exportBtn = new Ele<HTMLElement>(
+    'button',
+    {
+      className: [className.MD_BUTTON, className.EXPORT_BTN],
+      title: localize('export_title'),
+    },
+    svg(exportIcon),
+  )
+  const exportMenu = new Ele<HTMLElement>('div', {
+    className: className.EXPORT_MENU,
+  })
+  const pdfItem = new Ele<HTMLElement>('button')
+  pdfItem.textContent = localize('export_pdf')
+  const htmlItem = new Ele<HTMLElement>('button')
+  htmlItem.textContent = localize('export_html')
+  exportMenu.append([pdfItem, htmlItem])
+  exportMenu.hide()
+  const closeExportMenu = () => exportMenu.hide()
+  exportBtn.on('click', (e: MouseEvent) => {
+    e.stopPropagation()
+    exportMenu.toggle()
+  })
+  document.addEventListener('click', closeExportMenu)
+  pdfItem.on('click', () => {
+    closeExportMenu()
+    printPage()
+  })
+  htmlItem.on('click', async () => {
+    closeExportMenu()
+    const name = fileName(location.pathname).replace(/\.[^.]+$/, '')
+    await exportHtml(
+      mdContent.ele,
+      document.title.replace(/^● /, '') || name,
+      name || 'document',
+      configData.customCss,
+    )
+    toast(localize('export_done'))
+  })
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.altKey && e.shiftKey && e.code === 'KeyE') {
       e.preventDefault()
+      preview.close()
       editor.toggle()
     }
   })
@@ -366,11 +511,27 @@ function main(data: Data) {
   const buttonWrap = new Ele<HTMLElement>(
     'div',
     { className: className.BUTTON_WRAP_ELE },
-    [sideExpandBtn, editToggleBtn, rawToggleBtn, goTopBtn],
+    [
+      sideExpandBtn,
+      exportBtn,
+      exportMenu,
+      editToggleBtn,
+      rawToggleBtn,
+      goTopBtn,
+    ],
   )
 
   /* mount elements */
-  lifecycle.mount([buttonWrap, mdBody, mdSide, editor.panel])
+  lifecycle.mount([
+    buttonWrap,
+    mdBody,
+    mdSide,
+    editor.panel,
+    preview.panel,
+    toastEle,
+  ])
+  /* popup: recently opened files (local list, can be turned off) */
+  safeCall(() => rememberPage(location.href, document.title))
   updateAnchorPosition()
   mounted = true
 
