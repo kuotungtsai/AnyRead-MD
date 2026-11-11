@@ -202,6 +202,8 @@ function main(data: Data) {
   const preview = createLinkPreview({
     labels: {
       open: localize('preview_open'),
+      openHere: localize('preview_open_here'),
+      openHereTip: localize('preview_open_here_tip'),
       close: localize('editor_close'),
       back: localize('preview_back'),
       forward: localize('preview_forward'),
@@ -569,6 +571,8 @@ function main(data: Data) {
             title: t('tour_toc_title'),
             body: t('tour_toc_body'),
           },
+      // the pane is closed during the tour, so this card sits in the middle
+      { title: t('tour_pane_title'), body: t('tour_pane_body') },
       {
         target: `.${className.EDIT_TOGGLE_BTN}`,
         title: t('tour_edit_title'),
@@ -578,6 +582,11 @@ function main(data: Data) {
         target: `.${className.CODE_TOGGLE_BTN}`,
         title: t('tour_raw_title'),
         body: t('tour_raw_body'),
+      },
+      {
+        target: `.${className.EXPORT_BTN}`,
+        title: t('tour_export_title'),
+        body: t('tour_export_body'),
       },
       { title: t('tour_folder_title'), body: t('tour_folder_body') },
       { title: t('tour_settings_title'), body: t('tour_settings_body') },

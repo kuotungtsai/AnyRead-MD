@@ -14,6 +14,8 @@ import { safeCall } from './runtime'
 
 export interface PreviewLabels {
   open: string
+  openHere: string
+  openHereTip: string
   close: string
   back: string
   forward: string
@@ -100,9 +102,10 @@ export function createLinkPreview(opts: PreviewOptions) {
   const title = new Ele<HTMLElement>('span', {
     className: className.PREVIEW_TITLE,
   })
+  const openHereBtn = button('open-here', labels.openHere, labels.openHereTip)
   const openBtn = button('open', labels.open, labels.open)
   const closeBtn = button('close', labels.close, 'Esc')
-  bar.append([backBtn, forwardBtn, title, openBtn, closeBtn])
+  bar.append([backBtn, forwardBtn, title, openHereBtn, openBtn, closeBtn])
 
   // same structure as the main document so the theme applies
   const content = new Ele<HTMLElement>('article', {
@@ -235,6 +238,10 @@ export function createLinkPreview(opts: PreviewOptions) {
 
   backBtn.on('click', () => go(-1))
   forwardBtn.on('click', () => go(1))
+  openHereBtn.on('click', () => {
+    // the tab's own back button returns to the document on the left
+    if (current) location.href = current
+  })
   openBtn.on('click', () => {
     if (current) openInNewTab(current)
   })
