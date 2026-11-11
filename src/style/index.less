@@ -734,9 +734,13 @@ body.md-reader {
       color: var(--color-text-primary);
       background: var(--color-bg);
       cursor: pointer;
-      &:hover {
+      &:hover:not(:disabled) {
         color: var(--color-primary);
         border-color: var(--color-primary);
+      }
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
       }
     }
   }

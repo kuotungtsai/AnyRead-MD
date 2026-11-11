@@ -202,6 +202,7 @@ function main(data: Data) {
       open: localize('preview_open'),
       close: localize('editor_close'),
       back: localize('preview_back'),
+      forward: localize('preview_forward'),
       loading: localize('preview_loading'),
       error: localize('preview_error'),
     },

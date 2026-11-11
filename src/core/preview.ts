@@ -16,6 +16,7 @@ export interface PreviewLabels {
   open: string
   close: string
   back: string
+  forward: string
   loading: string
   error: string
 }
@@ -57,23 +58,37 @@ function rebase(root: HTMLElement, base: string) {
   root.querySelectorAll('a[href]').forEach(el => fix(el, 'href'))
 }
 
+/** open an address in a new tab, keeping the page being read */
+function openInNewTab(url: string) {
+  window.open(url, '_blank', 'noopener')
+}
+
+/** links the pane hands to a new tab (not mailto:, javascript: ...) */
+const TAB_PROTOCOLS = /^(https?|file):$/
+
 export function createLinkPreview(opts: PreviewOptions) {
   const { labels } = opts
   let current: string = null
-  const history: string[] = []
+  /** files shown in the pane, like a tab's history; `at` is the one shown */
+  const visits: { url: string; scroll: number }[] = []
+  let at = -1
 
   const panel = new Ele<HTMLElement>('aside', { className: className.PREVIEW })
   const bar = new Ele<HTMLElement>('div', { className: className.PREVIEW_BAR })
-  const backBtn = new Ele<HTMLElement>('button', { title: labels.back })
-  backBtn.textContent = '←'
+  const button = (act: string, text: string, tip: string) => {
+    const btn = new Ele<HTMLButtonElement>('button', { title: tip })
+    btn.ele.dataset.act = act
+    btn.textContent = text
+    return btn
+  }
+  const backBtn = button('back', '←', labels.back)
+  const forwardBtn = button('forward', '→', labels.forward)
   const title = new Ele<HTMLElement>('span', {
     className: className.PREVIEW_TITLE,
   })
-  const openBtn = new Ele<HTMLElement>('button')
-  openBtn.textContent = labels.open
-  const closeBtn = new Ele<HTMLElement>('button', { title: 'Esc' })
-  closeBtn.textContent = labels.close
-  bar.append([backBtn, title, openBtn, closeBtn])
+  const openBtn = button('open', labels.open, labels.open)
+  const closeBtn = button('close', labels.close, 'Esc')
+  bar.append([backBtn, forwardBtn, title, openBtn, closeBtn])
 
   // same structure as the main document so the theme applies
   const content = new Ele<HTMLElement>('article', {
@@ -108,14 +123,39 @@ export function createLinkPreview(opts: PreviewOptions) {
     if (target) target.scrollIntoView({ block: 'start' })
   }
 
-  async function show(url: string, remember = true) {
+  function updateButtons() {
+    backBtn.ele.disabled = at <= 0
+    forwardBtn.ele.disabled = at >= visits.length - 1
+  }
+
+  /** a new file in the pane: what was ahead of it is dropped, like a tab */
+  function visit(url: string) {
+    const here = visits[at]
+    if (here) here.scroll = panel.ele.scrollTop
+    if (here && stripHash(here.url) === stripHash(url)) {
+      here.url = url // the same file, another section
+    } else {
+      visits.splice(at + 1)
+      visits.push({ url, scroll: 0 })
+      at = visits.length - 1
+    }
+    return show(url)
+  }
+
+  /** step through the pane's history: -1 back, +1 forward */
+  function go(step: number) {
+    const to = at + step
+    if (!current || to < 0 || to >= visits.length) return
+    visits[at].scroll = panel.ele.scrollTop
+    at = to
+    return show(visits[at].url, visits[at].scroll)
+  }
+
+  async function show(url: string, scroll?: number) {
     const file = stripHash(url)
     const hash = url.includes('#') ? url.slice(url.indexOf('#') + 1) : ''
-    if (remember && current && stripHash(current) !== file) {
-      history.push(current)
-    }
     current = url
-    backBtn.toggle(history.length > 0)
+    updateButtons()
     title.textContent = fileName(file)
     title.ele.title = decodeSafe(file)
     panel.show()
@@ -130,26 +170,33 @@ export function createLinkPreview(opts: PreviewOptions) {
     }
     opts.render(content.ele, source)
     rebase(content.ele, file)
-    scrollToAnchor(hash)
+    if (scroll !== undefined) panel.ele.scrollTop = scroll
+    else scrollToAnchor(hash)
   }
 
   function close() {
     if (!current) return
     current = null
-    history.length = 0
+    visits.length = 0
+    at = -1
     panel.hide()
     content.innerHTML = null
     document.body.classList.remove(className.PREVIEWING)
   }
 
-  backBtn.on('click', () => {
-    const prev = history.pop()
-    if (prev) show(prev, false)
-  })
+  backBtn.on('click', () => go(-1))
+  forwardBtn.on('click', () => go(1))
   openBtn.on('click', () => {
-    if (current) location.href = current
+    if (current) openInNewTab(current)
   })
   closeBtn.on('click', close)
+
+  // the mouse's back / forward side buttons step through the pane, not the tab
+  panel.on('mouseup', (e: MouseEvent) => {
+    if (e.button !== 3 && e.button !== 4) return
+    e.preventDefault()
+    go(e.button === 3 ? -1 : 1)
+  })
 
   content.on(
     'click',
@@ -166,12 +213,20 @@ export function createLinkPreview(opts: PreviewOptions) {
         const next = previewTarget(href, current)
         if (next) {
           e.preventDefault()
-          show(next)
+          visit(next)
           return
         }
         if (isSameFile(href, current)) {
           e.preventDefault()
           scrollToAnchor(href.split('#')[1] || '')
+          return
+        }
+        // anything else (a picture, a folder, another site) must not replace
+        // the document on the left, so it gets a tab of its own
+        const url = (link as HTMLAnchorElement).href
+        if (url && TAB_PROTOCOLS.test(new URL(url).protocol)) {
+          e.preventDefault()
+          openInNewTab(url)
           return
         }
       }
@@ -191,14 +246,14 @@ export function createLinkPreview(opts: PreviewOptions) {
 
   return {
     panel,
-    open: (url: string) => show(url),
+    open: (url: string) => visit(url),
     close,
     get isOpen() {
       return !!current
     },
     /** re-render with new settings (theme, plugins) */
     refresh() {
-      if (current) show(current, false)
+      if (current) show(current, panel.ele.scrollTop)
     },
   }
 }
