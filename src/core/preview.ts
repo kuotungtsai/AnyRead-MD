@@ -9,7 +9,7 @@
 import Ele from './ele'
 import className from '@/config/class-name'
 import { fileName } from './file-types'
-import { anchorOf, isSameFile, previewTarget } from './links'
+import { headingIndex, isSameFile, previewTarget } from './links'
 import { safeCall } from './runtime'
 
 export interface PreviewLabels {
@@ -17,6 +17,7 @@ export interface PreviewLabels {
   close: string
   back: string
   forward: string
+  resize: string
   loading: string
   error: string
 }
@@ -66,6 +67,19 @@ function openInNewTab(url: string) {
 /** links the pane hands to a new tab (not mailto:, javascript: ...) */
 const TAB_PROTOCOLS = /^(https?|file):$/
 
+/** the pane's share of the window width, kept on this device */
+const WIDTH_KEY = 'previewWidth'
+const MIN_WIDTH = 0.2
+const MAX_WIDTH = 0.8
+const clampWidth = (n: number) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n))
+
+function setWidth(share: number) {
+  document.body.style.setProperty(
+    '--preview-width',
+    `${(clampWidth(share) * 100).toFixed(2)}vw`,
+  )
+}
+
 export function createLinkPreview(opts: PreviewOptions) {
   const { labels } = opts
   let current: string = null
@@ -99,28 +113,63 @@ export function createLinkPreview(opts: PreviewOptions) {
     { className: className.MD_BODY },
     content,
   )
-  panel.append([bar, body])
+  // drag the left edge to change the width; double-click for half and half
+  const resizer = new Ele<HTMLElement>('div', {
+    className: className.PREVIEW_RESIZER,
+    title: labels.resize,
+  })
+  panel.append([resizer, bar, body])
   panel.hide()
+
+  safeCall(() =>
+    chrome.storage.local.get(WIDTH_KEY, data => {
+      void chrome.runtime.lastError
+      const share = Number(data?.[WIDTH_KEY])
+      if (share > 0) setWidth(share)
+    }),
+  )
+  const saveWidth = (share: number) =>
+    safeCall(() => chrome.storage.local.set({ [WIDTH_KEY]: clampWidth(share) }))
+
+  let dragShare = 0
+  resizer.on('pointerdown', (e: PointerEvent) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    resizer.ele.setPointerCapture(e.pointerId)
+    document.body.classList.add(className.PREVIEW_RESIZING)
+    dragShare = 0
+  })
+  resizer.on('pointermove', (e: PointerEvent) => {
+    if (!resizer.ele.hasPointerCapture(e.pointerId)) return
+    dragShare = clampWidth((window.innerWidth - e.clientX) / window.innerWidth)
+    setWidth(dragShare)
+  })
+  const endDrag = (e: PointerEvent) => {
+    if (!resizer.ele.hasPointerCapture(e.pointerId)) return
+    resizer.ele.releasePointerCapture(e.pointerId)
+    document.body.classList.remove(className.PREVIEW_RESIZING)
+    if (dragShare) saveWidth(dragShare)
+  }
+  resizer.on('pointerup', endDrag)
+  resizer.on('pointercancel', endDrag)
+  resizer.on('dblclick', () => {
+    setWidth(0.5)
+    saveWidth(0.5)
+  })
 
   function scrollToAnchor(hash: string) {
     if (!hash) {
       panel.ele.scrollTop = 0
       return
     }
-    let wanted = hash
-    try {
-      wanted = decodeURIComponent(hash)
-    } catch {
-      // keep as is
-    }
     const heads = Array.from(
       content.ele.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6'),
     )
-    const target = heads.find(h => {
-      const name = anchorOf(h.textContent || '')
-      return name === hash || decodeURIComponent(name) === wanted
-    })
-    if (target) target.scrollIntoView({ block: 'start' })
+    const i = headingIndex(
+      heads.map(h => h.textContent || ''),
+      hash,
+    )
+    if (i >= 0) heads[i].scrollIntoView({ block: 'start' })
   }
 
   function updateButtons() {

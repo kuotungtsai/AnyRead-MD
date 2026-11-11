@@ -23,6 +23,7 @@ import successIcon from '@/images/icon_success.svg'
 import copyIcon from '@/images/icon_copy.svg'
 import className from '@/config/class-name'
 import Ele, { svg } from './ele'
+import { isWrittenAsLink } from './links'
 
 /**
  * markdown-it-multimd-table 4.2.3 (latest) calls md.utils.assign, which
@@ -118,7 +119,7 @@ function initRender({
   })
 
   // linkify-it options. linkify-it 6 turned fuzzy links off by default: keep
-  // linking bare domains (www.example.com) and emails as before.
+  // linking www.example.com and emails as before.
   const linkifyOpts = isPlainObject(pluginOptions.Linkify)
     ? pluginOptions.Linkify
     : {}
@@ -126,6 +127,27 @@ function initRender({
     md.linkify.set({ fuzzyLink: true, fuzzyEmail: true, ...linkifyOpts })
   } catch (err) {
     console.error('[md-reader] invalid Linkify options:', err)
+  }
+  // A file name such as "local.mk" or "setup.py" looks like a web address
+  // (.mk and .py are country domains). Like GitHub, only link what was
+  // written as a link; { "bareDomains": true } brings the old behaviour back.
+  if (linkifyOpts.bareDomains !== true) {
+    md.core.ruler.after('linkify', 'anyread_bare_domains', state => {
+      for (const block of state.tokens) {
+        const list = block.children
+        if (block.type !== 'inline' || !list) continue
+        for (let i = 0; i < list.length - 2; i++) {
+          const open = list[i]
+          if (open.type !== 'link_open' || open.markup !== 'linkify') continue
+          const text = list[i + 1]
+          if (isWrittenAsLink(text.content)) continue
+          const plain = new state.Token('text', '', 0)
+          plain.content = text.content
+          plain.level = open.level
+          list.splice(i, 3, plain)
+        }
+      }
+    })
   }
 
   // custom plugins
