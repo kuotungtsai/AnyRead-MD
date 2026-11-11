@@ -94,6 +94,14 @@ AnyRead MD 有自己的版本號，從 1.0.0 起算，採 [語意化版本](http
 
 出新版前，記得把 `package.json` 的 `version` 往上加，才分得出是哪一版。`pack:share` 不會跑 `build:manifest`，所以要先跑一次 `pnpm run build`（或 `pnpm run build:manifest`），zip 檔名才會是新版號。
 
+### 發布
+
+推上 `v` 開頭的 tag（例如 `v1.1.2`）時，GitHub Actions 會建置兩個 zip，並建立同名的 GitHub Release。
+
+- Release 的說明取自 `release-notes/<tag>.md`（例如 `release-notes/v1.1.2.md`），請在打 tag 之前寫好並 commit。寫法可以參考 [release-notes/v1.1.1.md](./release-notes/v1.1.1.md)：「新增」「修正」「下載」，後面附英文。
+- 沒有這個檔案時，會改用 GitHub 自動產生的說明；那份說明只會列出合併過的 pull request，通常不完整。
+- tag 必須和 `package.json` 的版本相同，否則建置會失敗。
+
 ## 專案結構
 
 | 路徑                     | 內容                                                  |

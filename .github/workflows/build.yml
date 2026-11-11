@@ -62,11 +62,20 @@ jobs:
           path: dist/*.zip
           if-no-files-found: error
 
+      # Notes come from release-notes/<tag>.md (e.g. release-notes/v1.1.2.md).
+      # Without that file GitHub writes its own, which only lists merged
+      # pull requests.
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          notes="release-notes/$GITHUB_REF_NAME.md"
+          if [ -s "$notes" ]; then
+            set -- --notes-file "$notes"
+          else
+            echo "::warning::$notes not found, using GitHub's generated notes"
+            set -- --generate-notes
+          fi
           gh release create "$GITHUB_REF_NAME" dist/*.zip \
-            --title "AnyRead MD $GITHUB_REF_NAME" \
-            --generate-notes
+            --title "AnyRead MD $GITHUB_REF_NAME" "$@"
