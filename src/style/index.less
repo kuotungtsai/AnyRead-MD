@@ -1,6 +1,20 @@
 @import url('./variable.less');
 @side-width: 260px;
 
+// Chrome paints a Markdown file as plain text before the reader has loaded.
+// This style is in place before the page is drawn, so the raw text stays
+// hidden until the reader marks the page ready. If the reader never does
+// (an error, a page that is not Markdown), the text shows after 2 seconds.
+html:not(.anyread-ready) > body > pre {
+  visibility: hidden;
+  animation: anyread-show-raw 0s 2s forwards;
+}
+@keyframes anyread-show-raw {
+  to {
+    visibility: visible;
+  }
+}
+
 body.md-reader {
   margin: 0;
   padding: 0;

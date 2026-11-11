@@ -100,6 +100,7 @@ function main(data: Data) {
       ? isTextDocument()
       : CONTENT_TYPES.includes(document.contentType))
   ) {
+    showPage() // not ours: show the text as Chrome does
     return
   }
 
@@ -121,6 +122,7 @@ function main(data: Data) {
 
   const rawContainer = getRawContainer()
   lifecycle.init(rawContainer)
+  showPage() // the raw text is hidden by init, the rendered page follows
   mdRaw = rawContainer?.textContent
 
   /* render content */
@@ -782,4 +784,15 @@ function isTextDocument(): boolean {
   )
 }
 
-storage.get().then(main)
+/** lift the style that hides the raw text while the reader loads */
+function showPage() {
+  document.documentElement.classList.add('anyread-ready')
+}
+
+storage
+  .get()
+  .then(main)
+  .catch(err => {
+    showPage()
+    throw err
+  })
