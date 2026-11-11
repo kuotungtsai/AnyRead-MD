@@ -1,6 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { anchorOf, isSameFile, previewTarget } from './.build/links.mjs'
+import {
+  anchorOf,
+  githubSlug,
+  headingIndex,
+  isSameFile,
+  isWrittenAsLink,
+  previewTarget,
+} from './.build/links.mjs'
 
 const page = 'file:///C:/docs/guide/index.md'
 
@@ -33,4 +40,31 @@ test('isSameFile and anchorOf', () => {
   assert.equal(isSameFile('index.md#a', page), true)
   assert.equal(isSameFile('other.md', page), false)
   assert.equal(anchorOf('  Getting Started  '), 'getting-started')
+})
+
+test('GitHub-style heading anchors', () => {
+  assert.equal(githubSlug('設定檔與 local.mk'), '設定檔與-localmk')
+  assert.equal(githubSlug('Build (x86) & Test'), 'build-x86--test')
+  assert.equal(githubSlug('snake_case-name'), 'snake_case-name')
+})
+
+test('a #link finds its heading by either naming rule', () => {
+  const heads = ['Intro', '設定檔與 local.mk', 'Intro']
+  assert.equal(headingIndex(heads, '#設定檔與-localmk'), 1)
+  assert.equal(
+    headingIndex(heads, '#' + encodeURIComponent('設定檔與-localmk')),
+    1,
+  )
+  assert.equal(headingIndex(heads, '設定檔與-local.mk'), 1)
+  assert.equal(headingIndex(heads, 'intro-1'), 2)
+  assert.equal(headingIndex(heads, 'missing'), -1)
+  assert.equal(headingIndex(heads, ''), -1)
+})
+
+test('only links written as links stay links', () => {
+  assert.equal(isWrittenAsLink('https://example.com'), true)
+  assert.equal(isWrittenAsLink('www.example.com'), true)
+  assert.equal(isWrittenAsLink('someone@example.com'), true)
+  assert.equal(isWrittenAsLink('local.mk'), false)
+  assert.equal(isWrittenAsLink('setup.py'), false)
 })

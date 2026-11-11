@@ -37,7 +37,7 @@ import goTopIcon from '@/images/icon_go_top.svg'
 import editIcon from '@/images/icon_edit.svg'
 import exportIcon from '@/images/icon_export.svg'
 import { createLinkPreview } from '@/core/preview'
-import { previewTarget } from '@/core/links'
+import { headingIndex, previewTarget } from '@/core/links'
 import { exportHtml, printPage } from '@/core/export'
 import { applyCustomCss, applyReading } from '@/core/reading'
 import { rememberPage } from '@/core/recent'
@@ -100,6 +100,7 @@ function main(data: Data) {
       ? isTextDocument()
       : CONTENT_TYPES.includes(document.contentType))
   ) {
+    showPage() // not ours: show the text as Chrome does
     return
   }
 
@@ -121,6 +122,7 @@ function main(data: Data) {
 
   const rawContainer = getRawContainer()
   lifecycle.init(rawContainer)
+  showPage() // the raw text is hidden by init, the rendered page follows
   mdRaw = rawContainer?.textContent
 
   /* render content */
@@ -200,8 +202,12 @@ function main(data: Data) {
   const preview = createLinkPreview({
     labels: {
       open: localize('preview_open'),
+      openHere: localize('preview_open_here'),
+      openHereTip: localize('preview_open_here_tip'),
       close: localize('editor_close'),
       back: localize('preview_back'),
+      forward: localize('preview_forward'),
+      resize: localize('preview_resize'),
       loading: localize('preview_loading'),
       error: localize('preview_error'),
     },
@@ -229,6 +235,16 @@ function main(data: Data) {
         writeText(url).then(() => toast(localize('link_copied')))
       }
       const link = target.closest?.('a[href]')
+      const href = link?.getAttribute('href') || ''
+      // "#name" written for GitHub (punctuation dropped) when no id matches
+      if (href.startsWith('#') && href.length > 1 && !findById(href.slice(1))) {
+        const i = headingIndex(headTitles(), href)
+        if (i >= 0) {
+          e.preventDefault()
+          location.hash = headElements[i].id
+          return
+        }
+      }
       if (
         link &&
         configData.linkPreview &&
@@ -555,6 +571,8 @@ function main(data: Data) {
             title: t('tour_toc_title'),
             body: t('tour_toc_body'),
           },
+      // the pane is closed during the tour, so this card sits in the middle
+      { title: t('tour_pane_title'), body: t('tour_pane_body') },
       {
         target: `.${className.EDIT_TOGGLE_BTN}`,
         title: t('tour_edit_title'),
@@ -564,6 +582,11 @@ function main(data: Data) {
         target: `.${className.CODE_TOGGLE_BTN}`,
         title: t('tour_raw_title'),
         body: t('tour_raw_body'),
+      },
+      {
+        target: `.${className.EXPORT_BTN}`,
+        title: t('tour_export_title'),
+        body: t('tour_export_body'),
       },
       { title: t('tour_folder_title'), body: t('tour_folder_body') },
       { title: t('tour_settings_title'), body: t('tour_settings_body') },
@@ -647,6 +670,7 @@ function main(data: Data) {
     const encodeContent = getDecodeContent(content)
 
     head.setAttribute('id', encodeContent)
+    head.dataset.title = content
 
     const headAnchor = new Ele<HTMLElement>('a', {
       className: className.HEAD_ANCHOR,
@@ -668,6 +692,20 @@ function main(data: Data) {
     df.append(li.ele)
 
     return eleList
+  }
+
+  function headTitles() {
+    return headElements.map(h => h.dataset.title ?? h.textContent ?? '')
+  }
+
+  function findById(hash: string) {
+    let id = hash
+    try {
+      id = decodeURIComponent(hash)
+    } catch {
+      // keep as written
+    }
+    return document.getElementById(id) || document.getElementById(hash)
   }
 
   function getDecodeContent(content: string): string {
@@ -729,9 +767,10 @@ function main(data: Data) {
     if (window.location.hash) {
       setTimeout(() => {
         const hash = window.location.hash.slice(1)
-        const target = headElements.find(head => {
+        let target = headElements.find(head => {
           return head.getAttribute('id') === hash
         })
+        if (!target) target = headElements[headingIndex(headTitles(), hash)]
         if (target) {
           const top = target.offsetTop
           top && window.scrollTo(0, top)
@@ -754,4 +793,15 @@ function isTextDocument(): boolean {
   )
 }
 
-storage.get().then(main)
+/** lift the style that hides the raw text while the reader loads */
+function showPage() {
+  document.documentElement.classList.add('anyread-ready')
+}
+
+storage
+  .get()
+  .then(main)
+  .catch(err => {
+    showPage()
+    throw err
+  })

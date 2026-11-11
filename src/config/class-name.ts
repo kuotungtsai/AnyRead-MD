@@ -46,5 +46,7 @@ export default {
   PREVIEW: p`preview`,
   PREVIEW_BAR: p`preview-bar`,
   PREVIEW_TITLE: p`preview-title`,
+  PREVIEW_RESIZER: p`preview-resizer`,
+  PREVIEW_RESIZING: 'md-reader-preview-resizing',
   PREVIEWING: 'md-reader-previewing',
 }

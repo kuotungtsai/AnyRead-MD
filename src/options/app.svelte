@@ -23,7 +23,7 @@
 
   // Example options shown as placeholders (not applied unless typed in)
   const EXAMPLES: Record<string, string> = {
-    Linkify: '{ "fuzzyLink": true, "fuzzyEmail": true, "fuzzyIP": false }',
+    Linkify: '{ "fuzzyLink": true, "fuzzyEmail": true, "fuzzyIP": false, "bareDomains": false }',
     Emoji: '{ "shortcuts": { "smile": [":)"] } }',
     TOC: '{ "includeLevel": [1, 2, 3], "containerHeaderHtml": "<b>Contents</b>" }',
     Katex: '{ "throwOnError": false, "macros": { "\\\\RR": "\\\\mathbb{R}" } }',

@@ -1,6 +1,20 @@
 @import url('./variable.less');
 @side-width: 260px;
 
+// Chrome paints a Markdown file as plain text before the reader has loaded.
+// This style is in place before the page is drawn, so the raw text stays
+// hidden until the reader marks the page ready. If the reader never does
+// (an error, a page that is not Markdown), the text shows after 2 seconds.
+html:not(.anyread-ready) > body > pre {
+  visibility: hidden;
+  animation: anyread-show-raw 0s 2s forwards;
+}
+@keyframes anyread-show-raw {
+  to {
+    visibility: visible;
+  }
+}
+
 body.md-reader {
   margin: 0;
   padding: 0;
@@ -690,7 +704,7 @@ body.md-reader {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 50vw;
+    width: var(--preview-width, 50vw);
     overflow: auto;
     border-left: 1px solid var(--color-side-border);
     background: var(--color-bg);
@@ -715,6 +729,37 @@ body.md-reader {
       }
     }
   }
+  .md-reader__preview-resizer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: var(--preview-width, 50vw);
+    width: 8px;
+    margin-right: -4px;
+    cursor: col-resize;
+    z-index: 4;
+    touch-action: none;
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 3px;
+      width: 2px;
+      background: transparent;
+      transition: background 0.15s;
+    }
+    &:hover::after {
+      background: var(--color-primary);
+    }
+  }
+  &.md-reader-preview-resizing {
+    cursor: col-resize;
+    user-select: none;
+    .md-reader__preview-resizer::after {
+      background: var(--color-primary);
+    }
+  }
   .md-reader__preview-bar {
     position: sticky;
     top: 0;
@@ -734,9 +779,13 @@ body.md-reader {
       color: var(--color-text-primary);
       background: var(--color-bg);
       cursor: pointer;
-      &:hover {
+      &:hover:not(:disabled) {
         color: var(--color-primary);
         border-color: var(--color-primary);
+      }
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
       }
     }
   }
@@ -751,7 +800,7 @@ body.md-reader {
   }
   &.md-reader-previewing {
     > .md-reader__body {
-      padding-right: 50vw;
+      padding-right: var(--preview-width, 50vw);
       .md-reader__markdown-content.centered > table {
         position: static;
         left: auto;
@@ -760,10 +809,10 @@ body.md-reader {
       }
     }
     .md-reader__button-wrap {
-      right: 50vw;
+      right: var(--preview-width, 50vw);
     }
     .md-reader__btn--go-top {
-      right: calc(50vw + 16px);
+      right: calc(var(--preview-width, 50vw) + 16px);
     }
   }
 
